@@ -1,0 +1,314 @@
+# backend/server.py
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from typing import Any, Dict, Optional, List
+from dotenv import load_dotenv
+
+load_dotenv(".env.local")
+
+from backend.db import get_session_state, save_session_state, insert_event
+from backend.serialize import serialize_game, deserialize_game, present_for_player
+
+# 너의 엔진 코드 import (루트에 game/ 패키지가 있다는 전제)
+from game.game_session import GameSession
+from game.ai_player import AIPlayer
+from game.player import Player
+from game.constants import GameState, Role
+
+from typing import Any, Dict, Optional, List
+
+app = FastAPI()
+
+class StartReq(BaseModel):
+    sessionId: str
+    participantName: str = "Human"
+    aiCount: int = 3
+    useFool: bool = True
+
+class StepReq(BaseModel):
+    sessionId: str
+    action: Dict[str, Any]
+
+def _run_ai_until_human(
+    game: GameSession,
+    human_name: str,
+    session_id: str,
+    allow_discussion: bool = False,
+    votes_cast: Optional[Dict[str, str]] = None,   # ✅ 추가
+) -> List[Dict[str, Any]]:
+    out = []
+    votes_cast = votes_cast if votes_cast is not None else {}
+
+    while True:
+        if game.game_state == GameState.ENDED:
+            break
+
+        if game.game_state == GameState.DISCUSSION and not allow_discussion:
+            break
+
+        if game.game_state in (GameState.DESCRIPTION, GameState.DISCUSSION) and game.turn_order and game.current_player.name == human_name:
+            break
+
+        if game.game_state in (GameState.DESCRIPTION, GameState.DISCUSSION):
+            p = game.current_player
+            if not getattr(p, "is_ai", False):
+                break
+
+            if game.game_state == GameState.DESCRIPTION:
+                keyword = game.keyword if p.role == Role.CITIZEN else ""
+                text = p.generate_description(game.category, keyword, game.descriptions)
+                game.handle_description(text)
+                insert_event(session_id, "AI_DESCRIPTION", {"by": p.name, "text": text})
+                out.append({"sender": "ai", "name": p.name, "content": text})
+
+                if game.game_state == GameState.DISCUSSION and not allow_discussion:
+                    break
+
+            elif game.game_state == GameState.DISCUSSION:
+                keyword = game.keyword if p.role == Role.CITIZEN else ""
+                text = p.generate_discussion(
+                    category=game.category,
+                    keyword=keyword,
+                    descriptions=game.descriptions,
+                    human_suspect=game.human_suspect_name or "",
+                    stance="DISAGREE",
+                    players_list=list(game.players.values()),
+                    current_discussion_log=game.discussions,
+                    is_authoritative=True,
+                    target_override=None,
+                )
+                game.handle_discussion(text)
+                insert_event(session_id, "AI_DISCUSSION", {"by": p.name, "text": text})
+                out.append({"sender": "ai", "name": p.name, "content": text})
+
+            continue
+
+        if game.game_state == GameState.VOTING:
+            not_voted = [p for p in game.players.values() if not getattr(p, "has_voted", False)]
+            if not not_voted:
+                break
+
+            voter = not_voted[0]
+            if voter.name == human_name:
+                break
+
+            if getattr(voter, "is_ai", False):
+                keyword = game.keyword if voter.role == Role.CITIZEN else None
+                target = voter.generate_vote(
+                    list(game.players.values()),
+                    game.descriptions,
+                    game.discussions,
+                    game.category,
+                    keyword
+                )
+                ok = game.handle_vote(voter, target)
+                votes_cast[voter.name] = target   # ✅ 기록
+                insert_event(session_id, "AI_VOTE", {"by": voter.name, "target": target, "ok": ok})
+                # ✅ system 채팅 메시지 out.append(...) 제거 (UX 원복)
+                continue
+
+            break
+
+        if game.game_state == GameState.FINAL_GUESS:
+            liar = game.liar
+            if liar and getattr(liar, "is_ai", False):
+                guess = liar.generate_guess(game.category, game.descriptions)
+                game.handle_final_guess(guess)
+                insert_event(session_id, "AI_FINAL_GUESS", {"by": liar.name, "guess": guess})
+                out.append({"sender": "ai", "name": liar.name, "content": f"(final guess) {guess}"})
+            break
+
+        break
+
+    return out
+
+
+@app.post("/game/start")
+def game_start(req: StartReq):
+    # (권장) 최소 3명 규칙: 인간 1명 + AI 2명 이상
+    if req.aiCount < 2:
+        raise HTTPException(status_code=400, detail="aiCount must be >= 2 (need at least 3 total players)")
+
+    # session 존재 확인
+    try:
+        _ = get_session_state(req.sessionId)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="session not found (call /api/session/start first)")
+
+    game = GameSession()
+    game.add_player(req.participantName)
+
+    for i in range(req.aiCount):
+        name = f"Bot_{i+1}"
+        game.add_player(name)
+        game.players[name] = AIPlayer(name)
+
+    ok = game.start_game(liar_count=1, use_fool=req.useFool)
+    if not ok:
+        raise HTTPException(status_code=500, detail="failed to start game")
+
+    # DB 저장
+    state = {
+        "participantName": req.participantName,
+        "game": serialize_game(game),
+    }
+    save_session_state(req.sessionId, state)
+
+    insert_event(req.sessionId, "GAME_STARTED", {
+        "participantName": req.participantName,
+        "aiCount": req.aiCount,
+        "useFool": req.useFool,
+        "category": game.category,
+        "keyword": game.keyword,   # DB에는 저장(관리자용)
+        "liar": game.liar.name if game.liar else None
+    })
+
+    # 참가자에게 보여줄 응답(라이어면 keyword 숨김)
+    presented = present_for_player(game, req.participantName, Role)
+    presented.update({"ok": True, "from": "python", "sessionId": req.sessionId, "messages": []})
+    return presented
+
+@app.post("/game/step")
+def game_step(req: StepReq):
+    # state 로드
+    try:
+        state = get_session_state(req.sessionId)
+        votes_cast = state.setdefault("votes_cast", {})  # ✅ 추가
+    except KeyError:
+        raise HTTPException(status_code=404, detail="session not found")
+
+    game_state = state.get("game")
+    human_name = state.get("participantName")
+    if not game_state or not human_name:
+        raise HTTPException(status_code=400, detail="game not started for this session")
+
+    game = deserialize_game(game_state, GameSession, Player, AIPlayer, GameState, Role)
+
+    action = req.action or {}
+    a_type = action.get("type")
+
+    messages_out: List[Dict[str, Any]] = []
+
+    # 인간 액션 처리
+    if a_type == "description":
+        text = (action.get("text") or "").strip()
+        if not text:
+            raise HTTPException(status_code=400, detail="missing description text")
+        if game.game_state != GameState.DESCRIPTION or game.current_player.name != human_name:
+            raise HTTPException(status_code=409, detail="not your turn for description")
+        game.handle_description(text)
+        insert_event(req.sessionId, "HUMAN_DESCRIPTION", {"by": human_name, "text": text})
+        messages_out.append({"sender": "user", "name": human_name, "content": text})
+
+    elif a_type == "discussion":
+        text = (action.get("text") or "").strip()
+        if not text:
+            raise HTTPException(status_code=400, detail="missing discussion text")
+        if game.game_state != GameState.DISCUSSION or game.current_player.name != human_name:
+            raise HTTPException(status_code=409, detail="not your turn for discussion")
+        game.handle_discussion(text)
+        insert_event(req.sessionId, "HUMAN_DISCUSSION", {"by": human_name, "text": text})
+        messages_out.append({"sender": "user", "name": human_name, "content": text})
+
+    elif a_type == "mid_check":      
+        # UI 중간점검(토론 들어가기 전) 기록 + 순서 재배열
+        suspect = action.get("suspectName")
+        confidence = action.get("confidence")
+        game.human_suspect_name = suspect
+        
+        state["mid_check_done"] = True # 미드 체크 상태
+        
+        if hasattr(game, "reorder_for_discussion"):
+            game.reorder_for_discussion()
+        insert_event(req.sessionId, "MID_CHECK", {"suspectName": suspect, "confidence": confidence})
+
+    elif a_type == "vote":
+        target = (action.get("targetName") or "").strip()
+        if not target:
+            raise HTTPException(status_code=400, detail="missing targetName")
+        if game.game_state != GameState.VOTING:
+            raise HTTPException(status_code=409, detail="not in voting phase")
+
+        voter = game.players.get(human_name)
+        if not voter or getattr(voter, "has_voted", False):
+            raise HTTPException(status_code=409, detail="already voted or voter not found")
+
+        ok = game.handle_vote(voter, target)
+        if not ok:
+            raise HTTPException(status_code=400, detail="invalid vote")
+
+        votes_cast[human_name] = target  # ✅ 기록
+        insert_event(req.sessionId, "HUMAN_VOTE", {"by": human_name, "target": target})
+        # ✅ "You voted for ..." 메시지 제거
+
+    elif a_type == "noop":
+        insert_event(req.sessionId, "NOOP", {})
+
+    else:
+        raise HTTPException(status_code=400, detail="unknown action.type")
+
+    allow_discussion = bool(state.get("mid_check_done", False))
+    ai_msgs = _run_ai_until_human(
+        game,
+        human_name,
+        req.sessionId,
+        allow_discussion,
+        votes_cast=votes_cast
+    )
+
+    # ✅ 인간 + AI 메시지 합치기
+    all_msgs = messages_out + ai_msgs
+
+    # ✅ DISCUSSION에 들어왔는데 mid-check 안했으면: ui.need로 프론트에 알리기
+    if game.game_state == GameState.DISCUSSION and not state.get("mid_check_done", False):
+        state["game"] = serialize_game(game)
+        state["votes_cast"] = votes_cast
+        save_session_state(req.sessionId, state)
+
+        presented = present_for_player(game, human_name, Role)
+        presented.update({
+            "ok": True,
+            "from": "python",
+            "sessionId": req.sessionId,
+            "messages": all_msgs,
+            "ui": {"need": "mid-check"},
+        })
+        return presented
+
+    # 저장
+    state["game"] = serialize_game(game)
+    state["votes_cast"] = votes_cast
+    save_session_state(req.sessionId, state)
+
+    presented = present_for_player(game, human_name, Role)
+    presented.update({"ok": True, "from": "python", "sessionId": req.sessionId, "messages": all_msgs})
+
+    # ✅ ENDED면 result 포함 + GAME_ENDED 이벤트도 return 전에 찍기
+    if game.game_state == GameState.ENDED:
+        liar = game.liar.name if game.liar else None
+        suspect = game.suspect.name if game.suspect else None
+        winner_side = None
+        if liar and suspect:
+            winner_side = "citizens" if liar == suspect else "liar"
+
+        presented["result"] = {
+            "winnerSide": winner_side,
+            "liar": liar,
+            "suspect": suspect,
+            "keyword": game.keyword,
+            "topic": game.category,
+            "votes": votes_cast,
+        }
+
+        insert_event(req.sessionId, "GAME_ENDED", {
+            "winnerSide": winner_side,
+            "liar": liar,
+            "suspect": suspect,
+            "keyword": game.keyword,
+            "topic": game.category,
+            "votes": votes_cast,
+        })
+
+    return presented
+
+

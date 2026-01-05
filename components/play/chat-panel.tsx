@@ -1,117 +1,83 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChatTranscript } from "./chat-transcript"
-import { Send, AlertCircle } from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
+import { Send } from "lucide-react"
 
 interface Message {
   id: string
   sender: "user" | "ai"
+  name?: string
   content: string
   timestamp: Date
 }
 
 interface ChatPanelProps {
   messages: Message[]
+  onSend: (text: string) => void
+  disabled?: boolean
+  statusText?: string
 }
 
-export function ChatPanel({ messages }: ChatPanelProps) {
+export function ChatPanel({ messages, onSend, disabled, statusText }: ChatPanelProps) {
   const [message, setMessage] = useState("")
-  const [issueReport, setIssueReport] = useState("")
 
-  const formattedMessages = messages.map((msg) => ({
-    id: msg.id,
-    sender: msg.sender === "user" ? "You" : "AI Player",
-    content: msg.content,
-    timestamp: msg.timestamp,
-    isAI: msg.sender === "ai",
-  }))
+  // ✅ ChatTranscript에 맞게 변환
+  const formattedMessages = useMemo(() => {
+    return messages.map((msg) => ({
+      id: msg.id,
+      sender: msg.sender === "user" ? (msg.name ?? "You") : (msg.name ?? "AI"),
+      content: msg.content,
+      timestamp: msg.timestamp,
+      isAI: msg.sender === "ai",
+    }))
+  }, [messages])
 
   const handleSendMessage = () => {
-    if (!message.trim()) return
-    console.log("[v0] Sending message:", message)
-    // In production: send message to server
+    if (disabled) return
+    const text = message.trim()
+    if (!text) return
     setMessage("")
-  }
-
-  const handleReportIssue = () => {
-    console.log("[v0] Reporting issue:", issueReport)
-    // In production: send issue report to server
-    setIssueReport("")
+    onSend(text)
   }
 
   return (
     <div className="h-full flex flex-col bg-background max-w-4xl mx-auto">
-      {/* Chat Transcript */}
       <div className="flex-1 overflow-hidden">
         <ChatTranscript messages={formattedMessages} />
       </div>
 
-      {/* Input Area */}
       <div className="border-t border-border bg-card p-4">
+        {statusText && <div className="mb-2 text-xs text-muted-foreground">{statusText}</div>}
+
         <div className="flex gap-2 mb-2">
           <Input
             value={message}
+            disabled={!!disabled}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => {
+              if (disabled) return
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault()
                 handleSendMessage()
               }
             }}
-            placeholder="Type your message..."
+            placeholder={disabled ? "Waiting for your turn…" : "Type your message..."}
             className="flex-1"
           />
-          <Button onClick={handleSendMessage} size="icon">
+
+          <Button
+            type="button"
+            disabled={!!disabled || !message.trim()}
+            onClick={handleSendMessage}
+            size="icon"
+          >
             <Send className="h-4 w-4" />
             <span className="sr-only">Send message</span>
           </Button>
         </div>
-
-        {/* Report Issue Link */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-              <AlertCircle className="h-3 w-3" />
-              Report issue
-            </button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Report an Issue</DialogTitle>
-              <DialogDescription>
-                Please describe any technical issues or concerns you're experiencing during the experiment.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Textarea
-                value={issueReport}
-                onChange={(e) => setIssueReport(e.target.value)}
-                placeholder="Describe the issue..."
-                rows={4}
-              />
-              <div className="flex justify-end gap-2">
-                <DialogTrigger asChild>
-                  <Button variant="outline">Cancel</Button>
-                </DialogTrigger>
-                <DialogTrigger asChild>
-                  <Button onClick={handleReportIssue}>Submit Report</Button>
-                </DialogTrigger>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   )

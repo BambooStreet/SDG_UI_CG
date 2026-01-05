@@ -16,24 +16,25 @@ interface MidCheckDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   aiPlayers: AIPlayer[]
+  onSubmit: (suspectName: string, confidence: number) => Promise<void> | void
 }
 
-export function MidCheckDialog({ open, onOpenChange, aiPlayers }: MidCheckDialogProps) {
+export function MidCheckDialog({ open, onOpenChange, aiPlayers, onSubmit }: MidCheckDialogProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<string>("")
   const [confidence, setConfidence] = useState<string>("")
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedPlayer || !confidence) return
-
-    console.log("[v0] Mid-check submission:", {
-      suspectedLiar: selectedPlayer,
-      confidence: Number.parseInt(confidence),
-    })
-
-    // In production: send to server
-    onOpenChange(false)
-    setSelectedPlayer("")
-    setConfidence("")
+    try {
+      setSubmitting(true)
+      await onSubmit(selectedPlayer, Number.parseInt(confidence))
+      onOpenChange(false)
+      setSelectedPlayer("")
+      setConfidence("")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const isValid = selectedPlayer && confidence
@@ -92,10 +93,10 @@ export function MidCheckDialog({ open, onOpenChange, aiPlayers }: MidCheckDialog
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid}>
+          <Button onClick={handleSubmit} disabled={!isValid || submitting}>
             Submit & Continue
           </Button>
         </div>

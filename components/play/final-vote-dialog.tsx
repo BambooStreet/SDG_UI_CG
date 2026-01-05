@@ -16,27 +16,24 @@ interface FinalVoteDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   aiPlayers: AIPlayer[]
-  onVoteComplete?: () => void // Added callback for vote completion
+  onSubmit: (targetName: string, confidence: number) => Promise<void> | void
 }
 
-export function FinalVoteDialog({ open, onOpenChange, aiPlayers, onVoteComplete }: FinalVoteDialogProps) {
+export function FinalVoteDialog({ open, onOpenChange, aiPlayers, onSubmit }: FinalVoteDialogProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<string>("")
   const [confidence, setConfidence] = useState<string>("")
+  const [submitting, setSubmitting] = useState(false)
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedPlayer || !confidence) return
-
-    console.log("[v0] Final vote submission:", {
-      votedPlayer: selectedPlayer,
-      confidence: Number.parseInt(confidence),
-    })
-
-    onOpenChange(false)
-    setSelectedPlayer("")
-    setConfidence("")
-
-    if (onVoteComplete) {
-      onVoteComplete()
+    try {
+      setSubmitting(true)
+      await onSubmit(selectedPlayer, Number.parseInt(confidence))
+      onOpenChange(false)
+      setSelectedPlayer("")
+      setConfidence("")
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -96,10 +93,10 @@ export function FinalVoteDialog({ open, onOpenChange, aiPlayers, onVoteComplete 
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid}>
+          <Button onClick={handleSubmit} disabled={!isValid || submitting}>
             Submit Final Vote
           </Button>
         </div>

@@ -15,9 +15,9 @@ export default function BriefingPage() {
   const [topicRevealed, setTopicRevealed] = useState(false)
 
   // Mock data - 나중에 실제 데이터로 교체
-  const isLiar = Math.random() > 0.5 // 50% 확률로 라이어
-  const topic = "Travel Destinations"
-  const keyword = isLiar ? "???" : "Paris"
+  const isLiar = false // 50% 확률로 라이어
+  const topic = "Animal"
+  const keyword = isLiar ? "???" : "Cat"
 
 const handleStartChat = async () => {
   if (!roleRevealed || !topicRevealed) return
