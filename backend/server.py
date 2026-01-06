@@ -34,10 +34,19 @@ def _run_ai_until_human(
     human_name: str,
     session_id: str,
     allow_discussion: bool = False,
-    votes_cast: Optional[Dict[str, str]] = None,   # ✅ 추가
+    votes_cast: Optional[Dict[str, str]] = None,
+    max_ai_steps: Optional[int] = None,          # ✅ 추가
 ) -> List[Dict[str, Any]]:
-    out = []
+    out: List[Dict[str, Any]] = []
     votes_cast = votes_cast if votes_cast is not None else {}
+    
+    if max_ai_steps == 0:
+        return out
+    
+    steps_done = 0
+
+    def step_limit_reached() -> bool:
+        return (max_ai_steps is not None) and (steps_done >= max_ai_steps)
 
     while True:
         if game.game_state == GameState.ENDED:
@@ -46,9 +55,11 @@ def _run_ai_until_human(
         if game.game_state == GameState.DISCUSSION and not allow_discussion:
             break
 
+        # 인간 턴이면 멈춤
         if game.game_state in (GameState.DESCRIPTION, GameState.DISCUSSION) and game.turn_order and game.current_player.name == human_name:
             break
 
+        # DESCRIPTION / DISCUSSION
         if game.game_state in (GameState.DESCRIPTION, GameState.DISCUSSION):
             p = game.current_player
             if not getattr(p, "is_ai", False):
@@ -60,7 +71,13 @@ def _run_ai_until_human(
                 game.handle_description(text)
                 insert_event(session_id, "AI_DESCRIPTION", {"by": p.name, "text": text})
                 out.append({"sender": "ai", "name": p.name, "content": text})
+                steps_done += 1
 
+                # ✅ 스텝 제한
+                if step_limit_reached():
+                    break
+
+                # ✅ mid-check 전이면 DISCUSSION 넘어가는 순간 끊기
                 if game.game_state == GameState.DISCUSSION and not allow_discussion:
                     break
 
@@ -80,9 +97,15 @@ def _run_ai_until_human(
                 game.handle_discussion(text)
                 insert_event(session_id, "AI_DISCUSSION", {"by": p.name, "text": text})
                 out.append({"sender": "ai", "name": p.name, "content": text})
+                steps_done += 1
+
+                # ✅ 스텝 제한
+                if step_limit_reached():
+                    break
 
             continue
 
+        # VOTING (AI vote는 메시지 안 뿌리지만 step은 1로 카운트)
         if game.game_state == GameState.VOTING:
             not_voted = [p for p in game.players.values() if not getattr(p, "has_voted", False)]
             if not not_voted:
@@ -99,16 +122,20 @@ def _run_ai_until_human(
                     game.descriptions,
                     game.discussions,
                     game.category,
-                    keyword
+                    keyword,
                 )
                 ok = game.handle_vote(voter, target)
-                votes_cast[voter.name] = target   # ✅ 기록
+                votes_cast[voter.name] = target
                 insert_event(session_id, "AI_VOTE", {"by": voter.name, "target": target, "ok": ok})
-                # ✅ system 채팅 메시지 out.append(...) 제거 (UX 원복)
+                steps_done += 1
+
+                if step_limit_reached():
+                    break
                 continue
 
             break
 
+        # FINAL_GUESS
         if game.game_state == GameState.FINAL_GUESS:
             liar = game.liar
             if liar and getattr(liar, "is_ai", False):
@@ -121,6 +148,7 @@ def _run_ai_until_human(
         break
 
     return out
+
 
 
 @app.post("/game/start")
@@ -186,6 +214,28 @@ def game_step(req: StepReq):
 
     action = req.action or {}
     a_type = action.get("type")
+
+    # ✅ NEW: maxAiSteps 파싱
+    raw = action.get("maxAiSteps", None)
+    max_ai_steps: Optional[int]
+
+    if raw is None:
+        max_ai_steps = None
+    elif isinstance(raw, bool):
+        max_ai_steps = int(raw)
+    elif isinstance(raw, int):
+        max_ai_steps = raw
+    elif isinstance(raw, float):
+        max_ai_steps = int(raw)
+    elif isinstance(raw, str):
+        s = raw.strip()
+        max_ai_steps = int(s) if s.isdigit() else None
+    else:
+        max_ai_steps = None
+
+    # ✅ NEW: noop이면 기본 1 step (프론트 pumpAI가 “한 번에 하나씩” 받게)
+    if a_type == "noop" and max_ai_steps is None:
+        max_ai_steps = 1
 
     messages_out: List[Dict[str, Any]] = []
 
@@ -253,7 +303,8 @@ def game_step(req: StepReq):
         human_name,
         req.sessionId,
         allow_discussion,
-        votes_cast=votes_cast
+        votes_cast=votes_cast,
+        max_ai_steps=max_ai_steps,
     )
 
     # ✅ 인간 + AI 메시지 합치기
