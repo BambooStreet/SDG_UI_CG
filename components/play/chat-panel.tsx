@@ -9,7 +9,7 @@ import { Send } from "lucide-react"
 
 interface Message {
   id: string
-  sender: "user" | "ai"
+  sender: "user" | "ai" | "system"
   name?: string
   content: string
   timestamp: Date
@@ -30,10 +30,11 @@ export function ChatPanel({ messages, onSend, disabled, statusText }: ChatPanelP
     () =>
       messages.map((msg) => ({
         id: msg.id,
-        sender: msg.sender === "user" ? "You" : (msg.name ?? "AI"),
+        sender: msg.sender === "user" ? "You" : msg.sender === "system" ? "System" : (msg.name ?? "AI"),
         content: msg.content,
         timestamp: msg.timestamp,
         isAI: msg.sender === "ai",
+        isSystem: msg.sender === "system",
       })),
     [messages]
   )

@@ -28,7 +28,7 @@ type ApiMsg = { sender: "user" | "ai" | "system"; name: string; content: string 
 
 type LocalMsg = {
   id: string
-  sender: "user" | "ai"
+  sender: "user" | "ai" | "system"
   name?: string
   content: string
   timestamp: Date
@@ -73,6 +73,7 @@ export default function PlayPage() {
 
   const [aiBusy, setAiBusy] = useState(false)
   const pendingUserEchoRef = useRef<{ name: string; content: string } | null>(null)
+  const lastPhaseRef = useRef<ServerPhase | null>(null)
   const lastTurnKeyRef = useRef<string | null>(null)
   
 
@@ -128,6 +129,18 @@ export default function PlayPage() {
   }, [isMyTurn])
 
   useEffect(() => {
+    if (!phase) return
+    if (lastPhaseRef.current === phase) return
+    lastPhaseRef.current = phase
+
+    if (phase === "DESCRIPTION") {
+      pushPhaseDivider("Explanation Session")
+    } else if (phase === "DISCUSSION") {
+      pushPhaseDivider("Discussion Session")
+    }
+  }, [phase])
+
+  useEffect(() => {
     if (showPhaseInfo || showTurnInfo || showMidCheck || showFinalVote) return
     if (uiNeed === "mid-check") return
     if (phase !== "DESCRIPTION" && phase !== "DISCUSSION") return
@@ -144,17 +157,32 @@ export default function PlayPage() {
   function pushOneLocalMessage(m: ApiMsg) {
     const now = Date.now()
     const isUser = m.sender === "user"
+    const isSystem = m.sender === "system"
     const sender: "user" | "ai" = isUser ? "user" : "ai"
-    const name = isUser ? (myName ?? "You") : (m.name || "System")
-    const content = m.sender === "system" ? `[SYSTEM] ${m.content}` : m.content
+    const name = isSystem ? "System" : isUser ? (myName ?? "You") : (m.name || "System")
+    const content = m.content
 
     setMessages((prev) => [
       ...prev,
       {
         id: `${now}-${Math.random().toString(16).slice(2)}`,
-        sender,
+        sender: isSystem ? "system" : sender,
         name,
         content,
+        timestamp: new Date(),
+      },
+    ])
+  }
+
+  function pushPhaseDivider(label: string) {
+    const now = Date.now()
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `${now}-phase-${Math.random().toString(16).slice(2)}`,
+        sender: "system",
+        name: "System",
+        content: label,
         timestamp: new Date(),
       },
     ])
