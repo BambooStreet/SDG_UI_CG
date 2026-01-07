@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { ClipboardList } from "lucide-react"
+import { logEvent } from "@/lib/api"
 
 export default function SurveyPage() {
   const router = useRouter()
@@ -19,9 +20,11 @@ export default function SurveyPage() {
     feedback: "",
   })
 
-  const handleSubmit = () => {
-    console.log("[v0] Survey responses:", responses)
-    // In production: submit to server
+  const handleSubmit = async () => {
+    const sessionId = localStorage.getItem("sessionId")
+    if (sessionId) {
+      await logEvent({ sessionId, type: "POST_SURVEY", payload: responses })
+    }
     alert("Thank you for participating in the Liar Game experiment!")
     router.push("/")
   }

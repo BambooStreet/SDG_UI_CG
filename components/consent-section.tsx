@@ -7,14 +7,31 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useRouter } from "next/navigation"
+import { startSession, logEvent } from "@/lib/api"
 
 export function ConsentSection() {
   const [agreed, setAgreed] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
 
-  const handleProceed = () => {
-    if (agreed) {
-      router.push("/instructions")
+  const handleProceed = async () => {
+    if (!agreed || isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      const existing = localStorage.getItem("sessionId") ?? undefined
+      const consentedAt = new Date().toISOString()
+      const { sessionId } = await startSession({
+        consentedAt,
+        ua: navigator.userAgent,
+        condition: "default",
+        sessionId: existing,
+      })
+      localStorage.setItem("sessionId", sessionId)
+      localStorage.setItem("consentedAt", consentedAt)
+      await logEvent({ sessionId, type: "CONSENTED" })
+      router.push("/pre-survey")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -114,8 +131,8 @@ export function ConsentSection() {
                 </Label>
               </div>
 
-              <Button size="lg" className="w-full" disabled={!agreed} onClick={handleProceed}>
-                Proceed to Instructions
+              <Button size="lg" className="w-full" disabled={!agreed || isSubmitting} onClick={handleProceed}>
+                Proceed to Pre-Survey
               </Button>
             </div>
           </CardContent>

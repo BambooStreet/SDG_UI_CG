@@ -25,8 +25,10 @@ const handleStartChat = async () => {
   // 이미 세션이 있으면 재사용(새로 시작이면 지워도 됨)
   const existing = localStorage.getItem("sessionId") ?? undefined
 
+  const consentedAt = localStorage.getItem("consentedAt") ?? new Date().toISOString()
+
   const { sessionId } = await startSession({
-    consentedAt: new Date().toISOString(),
+    consentedAt,
     ua: navigator.userAgent,
     condition: "default",
     sessionId: existing,
