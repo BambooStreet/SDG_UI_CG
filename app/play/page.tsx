@@ -141,6 +141,12 @@ export default function PlayPage() {
   }, [phase])
 
   useEffect(() => {
+    if (phase !== "VOTING" && showAIVoting) {
+      setShowAIVoting(false)
+    }
+  }, [phase, showAIVoting])
+
+  useEffect(() => {
     if (showPhaseInfo || showTurnInfo || showMidCheck || showFinalVote) return
     if (uiNeed === "mid-check") return
     if (phase !== "DESCRIPTION" && phase !== "DISCUSSION") return
@@ -274,14 +280,15 @@ export default function PlayPage() {
    * - 핵심: noop을 여러 번 호출해서(가능하면 1 AI step씩) 메시지가 “생성되는 즉시” 화면에 들어오게
    * - showMidCheck / showFinalVote / showPhaseInfo 떠있으면 멈춤
    */
-  async function pumpAI(max = 30) {
+  async function pumpAI(max = 30, options?: { force?: boolean }) {
+    const force = options?.force === true
     if (!sessionId) return
     if (pumpingRef.current) return
     if (showPhaseInfo || showTurnInfo || showMidCheck || showFinalVote) return
     if (uiNeed === "mid-check") return
     if (phase === "ENDED") return
-    if ((phase === "DESCRIPTION" || phase === "DISCUSSION") && myName && currentPlayer === myName) return
-    if (phase === "VOTING" && !hasVotedRef.current) return
+    if (!force && (phase === "DESCRIPTION" || phase === "DISCUSSION") && myName && currentPlayer === myName) return
+    if (!force && phase === "VOTING" && !hasVotedRef.current) return
 
     pumpingRef.current = true
     setAiBusy(true)
@@ -296,7 +303,7 @@ export default function PlayPage() {
         if (!data || data.__conflict) break
         if (data.ui?.need === "mid-check") break
         if (data.phase === "ENDED") break
-        if (data.phase === "VOTING" && !hasVotedRef.current) break
+        if (!force && data.phase === "VOTING" && !hasVotedRef.current) break
 
         const nextMyName = data.privateState?.myName
         const nextCurrent = data.publicState?.turn?.currentPlayer
@@ -426,7 +433,7 @@ export default function PlayPage() {
       }
 
       // 백엔드에는 그대로 기록/리오더 요청
-      await callStep({ type: "mid_check", suspectName, confidence })
+      await callStep({ type: "mid_check", suspectName, confidence, maxAiSteps: 0 })
 
       // 토론 팝업을 띄운 경우엔 팝업 닫힐 때 pumpAI가 돌게 되어있으니 여기선 안 돌림
       if (!shouldShowDiscussionIntro) {
@@ -446,10 +453,13 @@ export default function PlayPage() {
       hasVotedRef.current = true // ✅ 중요
       localStorage.setItem("lastHumanVote", targetName) // (옵션)
   
-      await callStep({ type: "vote", targetName, confidence, maxAiSteps: 0 })
+      const data = await callStep({ type: "vote", targetName, confidence, maxAiSteps: 999 })
+      if (data?.phase && data.phase !== "VOTING") {
+        setShowAIVoting(false)
+      }
   
       // ✅ 이제 VOTING 펌프가 멈추지 않으니 ENDED까지 간다
-      await pumpAI(80)
+      await pumpAI(80, { force: true })
     } catch (e: any) {
       setError(String(e?.message ?? e))
     }

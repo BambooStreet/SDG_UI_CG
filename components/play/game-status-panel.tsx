@@ -307,7 +307,7 @@ export default function PlayPage() {
   async function submitMidCheck(suspectName: string, confidence: number) {
     try {
       setShowMidCheck(false)
-      await callStep({ type: "mid_check", suspectName, confidence })
+      await callStep({ type: "mid_check", suspectName, confidence, maxAiSteps: 0 })
 
       // ✅ 토론 세션 안내 팝업 1회
       if (!shownIntroRef.current.discussion) {
