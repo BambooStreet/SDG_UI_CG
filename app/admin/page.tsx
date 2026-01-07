@@ -90,9 +90,14 @@ export default async function AdminPage({
             <h1 className="text-2xl font-semibold text-foreground">Admin</h1>
             <p className="text-sm text-muted-foreground">Sessions and event logs (latest 100 sessions)</p>
           </div>
-          <Link href="/" className="text-sm text-primary hover:underline">
-            Back to game
-          </Link>
+          <div className="flex items-center gap-4 text-sm">
+            <Link href="/admin/export" className="text-primary hover:underline">
+              Export CSV
+            </Link>
+            <Link href="/" className="text-primary hover:underline">
+              Back to game
+            </Link>
+          </div>
         </header>
 
         <div className="grid gap-6 lg:grid-cols-[1.05fr_1.5fr]">
