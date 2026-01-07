@@ -318,6 +318,32 @@ export default function PlayPage() {
     }
   }
 
+  useEffect(() => {
+    if (!showAIVoting) return
+    if (phase !== "VOTING") {
+      setShowAIVoting(false)
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      await pumpAI(80, { force: true })
+      if (!cancelled && phase !== "VOTING") {
+        setShowAIVoting(false)
+      }
+    })()
+
+    const interval = setInterval(() => {
+      if (cancelled) return
+      pumpAI(40, { force: true }).catch(() => {})
+    }, 1500)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [showAIVoting, phase, sessionId])
+
   async function startGame(id: string) {
     const participantName = localStorage.getItem("participantName") ?? "P1"
     const aiCount = Number(localStorage.getItem("aiCount") ?? "3")
