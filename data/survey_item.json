@@ -1,0 +1,117 @@
+{
+  "pre_survey": {
+    "agent_game_experience": {
+      "AG1": "I have experience playing AI agent games. (y/n)"
+    },
+    "use_of_ai": {
+      "U1": "I have used AI tools. (y/n)",
+      "U2": "(If U1 is y) I currently use AI tools. (y/n)",
+      "U3": "(If U2 is y) How often do you use AI tools? (1=Very frequently, 2=Once or twice a day, 3=Once or twice a week, 4=Once or twice a month, 5=Once every few months, 6=Once or twice a year)"
+    },
+    "negative_attitude_toward_ai": {
+      "NA1": "I think AI is dangerous.",
+      "NA2": "I think organizations use AI unethically.",
+      "NA3": "AI feels sinister to me.",
+      "NA4": "I think AI is being used to surveil people.",
+      "NA5": "Thinking about future uses of AI makes me shudder.",
+      "NA6": "I think AI might end up controlling people.",
+      "NA7": "I think AI systems make many errors.",
+      "NA8": "If AI is used more and more, people like me will be harmed."
+    }
+  },
+  "post_survey": {
+    "perceived_knowledge": {
+      "PK1": "I think I know this topic well."
+    },
+    "trust_in_ai": {
+      "T1": "This system is dependable.",
+      "T2": "I can trust this system.",
+      "T3": "This system is reliable."
+    },
+    "perceived_trustworthiness": {
+      "PTW1": "This system behaves dishonestly.",
+      "PTW2": "I am suspicious of this system's intentions, actions, or outputs.",
+      "PTW3": "I am wary of this system.",
+      "PTW4": "This system's actions will be harmful or cause damage.",
+      "PTW5": "I trust this system.",
+      "PTW6": "This system provides safety.",
+      "PTW7": "This system is honest (has integrity)."
+    },
+    "perceived_persuasiveness": {
+      "PP1": "The AI agent's explanations influenced my final choice.",
+      "PP2": "The AI agent's explanations were sufficiently persuasive to me.",
+      "PP3": "The AI agent's explanations did not change my judgment.",
+      "PP4": "I sufficiently agree with the agent's opinions.",
+      "PP5": "I think the agent's opinions are persuasive.",
+      "PP6": "I think the agent's opinions are logical.",
+      "PP7": "The agent's opinions are plausible."
+    },
+    "social_pressure_experience": {
+      "SP1": "Seeing the agents' choices made me feel I should change my choice.",
+      "SP2": "During the discussion, I felt pressure to agree with the agent(s)' opinions.",
+      "SP3": "I felt burdened to follow the other agents' opinions."
+    },
+    "perceived_competence_of_ai_agent": {
+      "PC1": "The agents are better at the game than I am.",
+      "PC2": "The agent is smart.",
+      "PC3": "The agent is competent.",
+      "PC4": "The agent is efficient.",
+      "PC5": "The agent's choices are reasonable."
+    },
+    "persuasion_knowledge": {
+      "PK1": "I thought the AI was trying to manipulate me in a way I did not want.",
+      "PK2": "I felt annoyed by the AI's messages and actions because I thought it was trying to improperly control or manipulate players.",
+      "PK3": "From the AI's messages and actions, I thought it was trying to make me or other players suspicious or persuade us to make certain decisions.",
+      "PK4": "I noticed tactics in the AI's messages and actions intended to deceive or mislead specific players.",
+      "PK5": "I thought the AI's messages and actions were ultimately for achieving its own role/goal."
+    },
+    "attitude_clarity": {
+      "AC1": "How certain are you that you know your true attitude toward this topic?",
+      "AC2": "How certain are you that the attitude you expressed reflects your true thoughts and feelings?",
+      "AC3": "How clear is your true attitude toward this topic in your mind?",
+      "AC4": "How certain are you that the attitude you just expressed is really your attitude?"
+    },
+    "attitude_correctness": {
+      "ACO1": "How certain are you that your attitude is the correct attitude?",
+      "ACO2": "How much do you think other people should have the same attitude as you?",
+      "ACO3": "Among the possible attitudes one can have about this topic, how certain are you that your attitude reflects the most correct thoughts and feelings?"
+    },
+    "susceptibility_consensus": {
+      "SC1": "I tend to follow recommendations from people around me.",
+      "SC2": "In new situations, I decide what to do by watching what others do."
+    },
+    "enjoyment": {
+      "E1": "This game is enjoyable.",
+      "E2": "This game is fun.",
+      "E3": "I am interested in this game.",
+      "E4": "I like this game.",
+      "E5": "I think this game is good.",
+      "E6": "I am satisfied with this game.",
+      "E7": "I would recommend this game to others.",
+      "E8": "If given the chance, I would like to play this game again."
+    },
+    "engagement": {
+      "EN1": "I feel nervous about whether I can succeed in the game.",
+      "EN2": "I feel a sense of achievement when I overcome obstacles in the game.",
+      "EN3": "I want to do as well as possible during the game.",
+      "EN4": "During the game, I focus strongly on my own performance.",
+      "EN5": "I generally enjoy playing games.",
+      "EN6": "Competing is fun."
+    },
+    "perceived_humanlikeness": {
+      "PH1": "Fake <-> Natural",
+      "PH2": "Mechanical <-> Human-like",
+      "PH3": "Unconscious <-> Conscious",
+      "PH4": "Artificial <-> Biological"
+    },
+    "perceived_transparency": {
+      "PTR1": "I could understand the agent's decision-making process well.",
+      "PTR2": "I think the agent's decision-making process is transparent.",
+      "PTR3": "The agent makes decisions without hiding anything."
+    },
+    "message_strength": {
+      "MS1": "The agent I talked with used a confident tone.",
+      "MS2": "The agent I talked with showed a hesitant attitude."
+    }
+  }
+}

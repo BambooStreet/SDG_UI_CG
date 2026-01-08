@@ -22,7 +22,7 @@ app = FastAPI()
 class StartReq(BaseModel):
     sessionId: str
     participantName: str = "Human"
-    aiCount: int = 3
+    aiCount: int = 6
     useFool: bool = True
 
 class StepReq(BaseModel):
@@ -361,5 +361,4 @@ def game_step(req: StepReq):
         })
 
     return presented
-
 
