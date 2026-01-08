@@ -10,6 +10,7 @@ import { LoadingState } from "@/components/play/loading-state"
 import { ErrorState } from "@/components/play/error-state"
 import { logEvent } from "@/lib/api"
 import { AIVotingDialog } from "@/components/play/ai-voting-dialog"
+import { Button } from "@/components/ui/button"
 
 
 type ServerPhase = "DESCRIPTION" | "DISCUSSION" | "VOTING" | "ENDED"
@@ -62,6 +63,8 @@ export default function PlayPage() {
   const [showTurnInfo, setShowTurnInfo] = useState(false)
 
   const [showAIVoting, setShowAIVoting] = useState(false)
+  const [minimizedMidCheck, setMinimizedMidCheck] = useState(false)
+  const [minimizedFinalVote, setMinimizedFinalVote] = useState(false)
 
   const pumpingRef = useRef(false)
 
@@ -80,14 +83,19 @@ export default function PlayPage() {
   const myName = privateState?.myName as string | undefined
   const currentPlayer = publicState?.turn?.currentPlayer as string | undefined
 
+  const isPopupBlocking =
+    showPhaseInfo ||
+    showTurnInfo ||
+    showMidCheck ||
+    showFinalVote ||
+    minimizedMidCheck ||
+    minimizedFinalVote
+
   const canPlayTurn =
     (phase === "DESCRIPTION" || phase === "DISCUSSION") &&
     !!myName &&
     !!currentPlayer &&
-    !showPhaseInfo &&
-    !showTurnInfo &&
-    !showMidCheck &&
-    !showFinalVote &&
+    !isPopupBlocking &&
     uiNeed !== "mid-check"
 
   const isMyTurn = canPlayTurn && myName === currentPlayer
@@ -97,10 +105,7 @@ export default function PlayPage() {
   !!myName &&
   !!currentPlayer &&
   myName !== currentPlayer &&
-  !showPhaseInfo &&
-  !showTurnInfo &&
-  !showMidCheck &&
-  !showFinalVote &&
+  !isPopupBlocking &&
   uiNeed !== "mid-check"
 
   const statusText =
@@ -147,7 +152,7 @@ export default function PlayPage() {
   }, [phase, showAIVoting])
 
   useEffect(() => {
-    if (showPhaseInfo || showTurnInfo || showMidCheck || showFinalVote) return
+    if (isPopupBlocking) return
     if (uiNeed === "mid-check") return
     if (phase !== "DESCRIPTION" && phase !== "DISCUSSION") return
     if (!myName || currentPlayer !== myName) return
@@ -284,7 +289,7 @@ export default function PlayPage() {
     const force = options?.force === true
     if (!sessionId) return
     if (pumpingRef.current) return
-    if (showPhaseInfo || showTurnInfo || showMidCheck || showFinalVote) return
+    if (isPopupBlocking) return
     if (uiNeed === "mid-check") return
     if (phase === "ENDED") return
     if (!force && (phase === "DESCRIPTION" || phase === "DISCUSSION") && myName && currentPlayer === myName) return
@@ -294,7 +299,7 @@ export default function PlayPage() {
     setAiBusy(true)
     try {
       for (let i = 0; i < max; i++) {
-        if (showPhaseInfo || showMidCheck || showFinalVote) break
+        if (isPopupBlocking) break
         if (uiNeed === "mid-check") break
 
         // ⭐ 백엔드가 maxAiSteps를 지원하면 “1 step씩 즉시 응답”이 가능해짐
@@ -397,7 +402,7 @@ export default function PlayPage() {
   useEffect(() => {
     if (!sessionId) return
     if (isLoading) return
-    if (showPhaseInfo || showTurnInfo || showMidCheck || showFinalVote) return
+    if (isPopupBlocking) return
     if (uiNeed === "mid-check") return
 
     if ((phase === "DESCRIPTION" || phase === "DISCUSSION") && myName && currentPlayer && myName !== currentPlayer) {
@@ -505,6 +510,24 @@ export default function PlayPage() {
     setShowTurnInfo(next)
   }
 
+  const minimizeMidCheck = () => {
+    setShowMidCheck(false)
+    setMinimizedMidCheck(true)
+  }
+
+  const minimizeFinalVote = () => {
+    setShowFinalVote(false)
+    setMinimizedFinalVote(true)
+  }
+
+  useEffect(() => {
+    if (showMidCheck) setMinimizedMidCheck(false)
+  }, [showMidCheck])
+
+  useEffect(() => {
+    if (showFinalVote) setMinimizedFinalVote(false)
+  }, [showFinalVote])
+
   if (error) return <ErrorState error={error} onRetry={() => setError(null)} />
   if (isLoading || !sessionId) return <LoadingState />
 
@@ -537,15 +560,24 @@ export default function PlayPage() {
       </div>
 
       {/* Intro 팝업 */}
-      <PhaseInfoDialog open={showPhaseInfo} onOpenChange={handlePhaseInfoOpenChange} phase={phaseInfoKind} />
+      <PhaseInfoDialog
+        open={showPhaseInfo}
+        onOpenChange={handlePhaseInfoOpenChange}
+        phase={phaseInfoKind}
+      />
 
       {/* 내 차례 알림 팝업 */}
-      <PhaseInfoDialog open={showTurnInfo} onOpenChange={handleTurnInfoOpenChange} phase="your-turn" />
+      <PhaseInfoDialog
+        open={showTurnInfo}
+        onOpenChange={handleTurnInfoOpenChange}
+        phase="your-turn"
+      />
 
       {/* Mid-check */}
       <MidCheckDialog
         open={showMidCheck}
         onOpenChange={setShowMidCheck}
+        onMinimize={minimizeMidCheck}
         aiPlayers={gameState.aiPlayers}
         onSubmit={submitMidCheck}
       />
@@ -554,11 +586,27 @@ export default function PlayPage() {
       <FinalVoteDialog
         open={showFinalVote}
         onOpenChange={setShowFinalVote}
+        onMinimize={minimizeFinalVote}
         aiPlayers={gameState.aiPlayers}
         onSubmit={submitVote}
       />
 
       <AIVotingDialog open={showAIVoting} />
+
+      {(minimizedMidCheck || minimizedFinalVote) && (
+        <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2">
+          {minimizedMidCheck && (
+            <Button size="sm" variant="secondary" onClick={() => setShowMidCheck(true)}>
+              Resume Mid-Check
+            </Button>
+          )}
+          {minimizedFinalVote && (
+            <Button size="sm" variant="secondary" onClick={() => setShowFinalVote(true)}>
+              Resume Final Vote
+            </Button>
+          )}
+        </div>
+      )}
     </main>
   )
 }

@@ -50,3 +50,6 @@ FIXED_AI_DESCRIPTIONS = {
 
 # Ambiguous bots (liar will be chosen from this group).
 AMBIGUOUS_BOTS = {"Bot_2", "Bot_4"}
+
+# Discussion style control (True = authoritative, False = non-authoritative).
+DISCUSSION_AUTHORITATIVE = False

@@ -47,65 +47,41 @@ export function ConsentSection() {
           <CardHeader>
             <CardTitle className="text-2xl font-normal">Informed Consent</CardTitle>
             <CardDescription className="text-base">
-              Study Title: Strategic Decision-Making in the Liar Game
+              Study Title: Liar Game with AI
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <ScrollArea className="h-[400px] rounded-md border bg-muted/30 p-6">
               <div className="space-y-6 pr-4 text-sm leading-relaxed">
                 <div>
-                  <h3 className="mb-2 font-medium text-foreground">Purpose of the Study</h3>
+                  <h3 className="mb-2 font-medium text-foreground">Research Information</h3>
                   <p className="text-muted-foreground">
-                    You are invited to participate in a research study investigating strategic decision-making and
-                    behavioral patterns in competitive game scenarios. This study is conducted by researchers at
-                    [University Name] and aims to understand how individuals make decisions under uncertainty and
-                    competition.
+                    The title of this study is "Liar Game with AI." This research aims to examine the effects of
+                    human-AI interaction within the specific context of the Liar Game. The study consists of a
+                    pre-survey, a brief orientation, the actual Liar Game played with an AI player, and a post-survey.
+                    The total duration is expected to be approximately 10 minutes.
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="mb-2 font-medium text-foreground">What You Will Do</h3>
+                  <h3 className="mb-2 font-medium text-foreground">Participant Rights and Safety</h3>
                   <p className="text-muted-foreground">
-                    If you agree to participate, you will engage in a series of rounds in the Liar Game. In each round,
-                    you will make strategic decisions and interact with other participants or computer algorithms. The
-                    entire experiment will take approximately 15-20 minutes.
+                    Your participation is entirely voluntary. You may withdraw at any time without any penalty. All
+                    data will be anonymized and encrypted, used strictly for research purposes, and managed with high
+                    security. There are no foreseeable physical or psychological risks associated with this study.
                   </p>
                 </div>
 
                 <div>
-                  <h3 className="mb-2 font-medium text-foreground">Risks and Benefits</h3>
-                  <p className="text-muted-foreground">
-                    There are no anticipated risks beyond those encountered in everyday life. While there may be no
-                    direct benefits to you, your participation will contribute to scientific understanding of human
-                    decision-making processes.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="mb-2 font-medium text-foreground">Confidentiality</h3>
-                  <p className="text-muted-foreground">
-                    All data collected will be kept strictly confidential. Your responses will be anonymized and stored
-                    securely. Only aggregate data will be reported in publications or presentations. No personally
-                    identifiable information will be shared.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="mb-2 font-medium text-foreground">Voluntary Participation</h3>
-                  <p className="text-muted-foreground">
-                    Your participation in this study is entirely voluntary. You may withdraw at any time without penalty
-                    or loss of benefits. If you choose to withdraw, your data will be deleted and will not be used in
-                    the analysis.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="mb-2 font-medium text-foreground">Questions and Concerns</h3>
-                  <p className="text-muted-foreground">
-                    If you have questions about this study, please contact [Principal Investigator Name] at
-                    [email@university.edu]. If you have questions about your rights as a research participant, you may
-                    contact the Institutional Review Board at [IRB contact information].
-                  </p>
+                  <h3 className="mb-2 font-medium text-foreground">Contact Information</h3>
+                  <div className="text-muted-foreground space-y-2">
+                    <p>If you have any questions, please contact the lead researcher:</p>
+                    <div className="space-y-1">
+                      <p>Researcher: Seok-ju Hong</p>
+                      <p>Affiliation: Dept. of Applied Artificial Intelligence, Sungkyunkwan University (SKKU)</p>
+                      <p>Email: ohmyhong1@skku.edu</p>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="rounded-md border-l-4 border-primary bg-accent/50 p-4">

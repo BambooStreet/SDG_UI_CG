@@ -205,8 +205,8 @@ export default function PreSurveyPage() {
                           value={responses[question.responseKey] ?? ""}
                           onValueChange={(value) => setResponses({ ...responses, [question.responseKey]: value })}
                         >
-                          <div className="grid grid-cols-5 gap-2">
-                            {[1, 2, 3, 4, 5].map((score) => (
+                          <div className="grid grid-cols-7 gap-2">
+                            {[1, 2, 3, 4, 5, 6, 7].map((score) => (
                               <div key={score} className="flex flex-col items-center gap-1">
                                 <RadioGroupItem value={score.toString()} id={`${idBase}-${score}`} />
                                 <Label

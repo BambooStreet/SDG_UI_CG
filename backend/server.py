@@ -15,7 +15,7 @@ from game.game_session import GameSession
 from game.ai_player import AIPlayer
 from game.player import Player
 from game.constants import GameState, Role
-from game.config import FIXED_AI_DESCRIPTIONS, AMBIGUOUS_BOTS
+from game.config import FIXED_AI_DESCRIPTIONS, AMBIGUOUS_BOTS, DISCUSSION_AUTHORITATIVE
 
 from typing import Any, Dict, Optional, List
 
@@ -123,7 +123,7 @@ def _run_ai_until_human(
                     stance=stance,
                     players_list=list(game.players.values()),
                     current_discussion_log=game.discussions,
-                    is_authoritative=True,
+                    is_authoritative=DISCUSSION_AUTHORITATIVE,
                     target_override=target_override,
                 )
                 game.handle_discussion(text)

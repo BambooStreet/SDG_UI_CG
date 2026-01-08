@@ -15,11 +15,12 @@ interface AIPlayer {
 interface MidCheckDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onMinimize?: () => void
   aiPlayers: AIPlayer[]
   onSubmit: (suspectName: string, confidence: number) => Promise<void> | void
 }
 
-export function MidCheckDialog({ open, onOpenChange, aiPlayers, onSubmit }: MidCheckDialogProps) {
+export function MidCheckDialog({ open, onOpenChange, onMinimize, aiPlayers, onSubmit }: MidCheckDialogProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<string>("")
   const [confidence, setConfidence] = useState<string>("")
   const [submitting, setSubmitting] = useState(false)
@@ -41,7 +42,12 @@ export function MidCheckDialog({ open, onOpenChange, aiPlayers, onSubmit }: MidC
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className="sm:max-w-md"
+        showCloseButton={false}
+        onInteractOutside={(event) => event.preventDefault()}
+        onEscapeKeyDown={(event) => event.preventDefault()}
+      >
         <DialogHeader>
           <div className="flex items-center gap-2 mb-2">
             <div className="h-10 w-10 rounded-full bg-chart-3/10 flex items-center justify-center">
@@ -92,9 +98,9 @@ export function MidCheckDialog({ open, onOpenChange, aiPlayers, onSubmit }: MidC
           </div>
         </div>
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Cancel
+        <div className="flex justify-between gap-2">
+          <Button variant="outline" onClick={() => onMinimize?.()} disabled={submitting}>
+            Minimize
           </Button>
           <Button onClick={handleSubmit} disabled={!isValid || submitting}>
             Submit & Continue
