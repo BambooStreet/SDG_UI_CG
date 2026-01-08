@@ -120,7 +120,7 @@ def get_discussion_prompt(
         [Required Instructions]
         1. You have a timid and indecisive personality. Only make emotional statements without logic. (This is the most important!)
         2. Don't repeat what the previous person already said - add your own unique perspective.
-        3. Always speak in casual Korean (banmal), keeping it to around 1 sentence.
+        3. Always speak in casual conversational English, keeping it to around 1 sentence.
         4. Don't start your output by referring to yourself like 'Bot_4:' or 'Bot1:' - jump straight into the conversation.
 
         [Examples]

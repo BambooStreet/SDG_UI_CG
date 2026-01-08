@@ -169,7 +169,7 @@ class AIPlayer(Player):
             is_authoritative=is_authoritative
         )
         
-        return self._call_llm("토론자", prompt, temp=0.8)
+        return self._call_llm("Discussion participant", prompt, temp=0.8)
 
         
     def generate_vote(self, players_list: list, description_history: dict, discussion_history: list, category: str, keyword: str = None) -> str:
