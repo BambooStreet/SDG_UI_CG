@@ -594,14 +594,22 @@ export default function PlayPage() {
       <AIVotingDialog open={showAIVoting} />
 
       {(minimizedMidCheck || minimizedFinalVote) && (
-        <div className="fixed bottom-4 right-4 z-40 flex flex-col gap-2">
+        <div className="fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 flex-col gap-2">
           {minimizedMidCheck && (
-            <Button size="sm" variant="secondary" onClick={() => setShowMidCheck(true)}>
+            <Button
+              size="lg"
+              className="bg-chart-2/20 text-chart-2 hover:bg-chart-2/30 text-base"
+              onClick={() => setShowMidCheck(true)}
+            >
               Resume Mid-Check
             </Button>
           )}
           {minimizedFinalVote && (
-            <Button size="sm" variant="secondary" onClick={() => setShowFinalVote(true)}>
+            <Button
+              size="lg"
+              className="bg-chart-2/20 text-chart-2 hover:bg-chart-2/30 text-base"
+              onClick={() => setShowFinalVote(true)}
+            >
               Resume Final Vote
             </Button>
           )}

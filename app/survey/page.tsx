@@ -164,6 +164,10 @@ export default function SurveyPage() {
                               </div>
                             ))}
                           </div>
+                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>1 = Strongly disagree</span>
+                            <span>7 = Strongly agree</span>
+                          </div>
                         </RadioGroup>
                       )}
                     </div>

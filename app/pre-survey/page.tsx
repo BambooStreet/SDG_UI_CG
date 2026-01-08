@@ -23,10 +23,11 @@ const parseNumberedOptions = (text: string) => {
 const stripNumberedOptions = (text: string) => {
   const start = text.indexOf("1=")
   if (start === -1) return text.trim()
-  return text.slice(0, start).trim()
+  const trimmed = text.slice(0, start).trim()
+  return trimmed.replace(/\(\s*$/, "").trim()
 }
 
-const stripYesNo = (text: string) => text.replace(/\s*\(y\/n\)/i, "").trim()
+const stripYesNo = (text: string) => text.replace(/\s*\(y\/n\)/gi, "").trim()
 
 export default function PreSurveyPage() {
   const router = useRouter()
@@ -146,7 +147,7 @@ export default function PreSurveyPage() {
                               { value: "y", label: "Yes" },
                               { value: "n", label: "No" },
                             ].map((option) => (
-                              <div key={option.value} className="flex flex-col items-center gap-1">
+                              <div key={option.value} className="flex flex-col items-center gap-1 text-center">
                                 <RadioGroupItem value={option.value} id={`${idBase}-${option.value}`} />
                                 <Label
                                   htmlFor={`${idBase}-${option.value}`}
@@ -217,6 +218,10 @@ export default function PreSurveyPage() {
                                 </Label>
                               </div>
                             ))}
+                          </div>
+                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                            <span>1 = Strongly disagree</span>
+                            <span>7 = Strongly agree</span>
                           </div>
                         </RadioGroup>
                       )}

@@ -1,7 +1,7 @@
 {
   "pre_survey": {
     "agent_game_experience": {
-      "AG1": "I have experience playing AI agent games. (y/n)"
+      "AG1": "I have experienced playing AI agent games. (y/n)"
     },
     "use_of_ai": {
       "U1": "I have used AI tools. (y/n)",

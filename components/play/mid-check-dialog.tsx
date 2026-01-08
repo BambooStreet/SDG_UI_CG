@@ -99,7 +99,12 @@ export function MidCheckDialog({ open, onOpenChange, onMinimize, aiPlayers, onSu
         </div>
 
         <div className="flex justify-between gap-2">
-          <Button variant="outline" onClick={() => onMinimize?.()} disabled={submitting}>
+          <Button
+            variant="secondary"
+            className="bg-chart-2/20 text-chart-2 hover:bg-chart-2/30"
+            onClick={() => onMinimize?.()}
+            disabled={submitting}
+          >
             Minimize
           </Button>
           <Button onClick={handleSubmit} disabled={!isValid || submitting}>
