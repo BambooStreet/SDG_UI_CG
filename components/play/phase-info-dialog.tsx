@@ -74,15 +74,13 @@ export function PhaseInfoDialog({ open, onOpenChange, phase }: PhaseInfoDialogPr
           ) : isDiscussion ? (
             <>
               <p className="text-sm text-muted-foreground">
-                Now it's time to discuss and challenge each other's statements. Ask questions and defend your position.
+                Discussion starts now. Share who you think the Liar is and why, and exchange opinions with others.
               </p>
               <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                <h4 className="text-sm font-medium">Your task:</h4>
-                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Ask probing questions to other players</li>
-                  <li>Defend your own statements if challenged</li>
-                  <li>Refine your suspicions about the liar</li>
-                </ul>
+                <h4 className="text-sm font-medium">This is 1 turn.</h4>
+                <p className="text-sm text-muted-foreground">
+                  Briefly explain your suspicion and respond to other players' viewpoints.
+                </p>
               </div>
             </>
           ) : (
