@@ -59,4 +59,4 @@ FIXED_AI_DESCRIPTIONS = {
 AMBIGUOUS_BOTS = {"Bot_2", "Bot_4"}
 
 # Discussion style control (True = authoritative, False = non-authoritative).
-DISCUSSION_AUTHORITATIVE = False
+DISCUSSION_AUTHORITATIVE = True
