@@ -36,7 +36,7 @@
     },
     "perceived_persuasiveness": {
       "PP1": "The AI agents’ explanation influenced my final decision.",
-      "PP2": "I largely agree with the agents’ opinion.",
+      "PP2": "I largely agreed with the agents’ opinion.",
       "PP3": "I found the agents’ opinion persuasive.",
       "PP4": "I found the agents’ opinion logical.",
       "PP5": "The agents' opinions were plausible."
@@ -50,7 +50,7 @@
     "perceived_competence_of_ai_agent": {
       "PC1": "The AI agents performed better in the game than I do.",
       "PC2": "The AI agents were intelligent.",
-      "PC3": "The agents were competent.",
+      "PC3": "The AI agents were competent.",
       "PC4": "The choices of the AI agents were rational. "
     },
     "social_pressure_experience": {

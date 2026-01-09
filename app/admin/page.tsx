@@ -62,7 +62,7 @@ function formatTs(ts?: string | null) {
   if (!ts) return "-"
   const d = new Date(ts)
   if (Number.isNaN(d.getTime())) return ts
-  return d.toLocaleString()
+  return d.toLocaleString("ko-KR", { timeZone: "Asia/Seoul" })
 }
 
 function formatSectionTitle(key: string) {

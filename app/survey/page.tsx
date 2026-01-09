@@ -56,6 +56,10 @@ export default function SurveyPage() {
     logEvent({ sessionId, type: "POST_SURVEY_STARTED", ts: startedAt }).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [pageIndex])
+
   const sections = useMemo(() => {
     return Object.entries(POST_SURVEY).map(([sectionKey, items]) => ({
       key: sectionKey,
@@ -64,15 +68,23 @@ export default function SurveyPage() {
   }, [])
 
   const pages = useMemo(() => {
-    const perPage = Math.ceil(sections.length / 3)
-    return [
-      sections.slice(0, perPage),
-      sections.slice(perPage, perPage * 2),
-      sections.slice(perPage * 2),
-    ]
+    const messageStrength = sections.find((section) => section.key === "message_strength")
+    const otherSections = sections.filter((section) => section.key !== "message_strength")
+    if (!messageStrength) {
+      const perPage = Math.ceil(sections.length / 3)
+      return [
+        sections.slice(0, perPage),
+        sections.slice(perPage, perPage * 2),
+        sections.slice(perPage * 2),
+      ]
+    }
+    const perPage = Math.ceil(otherSections.length / 2)
+    return [otherSections.slice(0, perPage), otherSections.slice(perPage), [messageStrength]]
   }, [sections])
 
   const currentSections = pages[pageIndex] ?? []
+  const isMessageStrengthPage =
+    currentSections.length === 1 && currentSections[0]?.key === "message_strength"
 
   const handleSubmit = async () => {
     const sessionId = localStorage.getItem("sessionId")
@@ -118,7 +130,7 @@ export default function SurveyPage() {
         {/* Survey Questions */}
         <Card>
           <CardContent className="pt-6 space-y-8">
-            {pageIndex === 0 || pageIndex === 1 ? (
+            {isMessageStrengthPage || pageIndex === 0 || pageIndex === 1 ? (
               <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
                 <p>
                   The following questions concern the AI agents you interacted with during the game.
@@ -232,7 +244,7 @@ export default function SurveyPage() {
               Back
             </Button>
           )}
-          {pageIndex < 2 ? (
+          {pageIndex < pages.length - 1 ? (
             <Button size="lg" onClick={() => setPageIndex((prev) => prev + 1)} disabled={!isPageComplete}>
               Next
             </Button>

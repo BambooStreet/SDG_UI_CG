@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -14,7 +13,6 @@ const COMPLETE_URL = "https://connect.cloudresearch.com/participant/project/B2F4
 const COMPLETE_CODE = "B2F43F49B0"
 
 export default function CompletePage() {
-  const router = useRouter()
   const [isOpening, setIsOpening] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
 
@@ -68,9 +66,6 @@ export default function CompletePage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Button size="lg" onClick={handleOpen} disabled={isOpening}>
             Go to Completion Page
-          </Button>
-          <Button size="lg" variant="outline" onClick={() => router.push("/")}>
-            Return Home
           </Button>
         </div>
       </div>
