@@ -1,6 +1,12 @@
 import Link from "next/link"
 import { sql } from "@/lib/db"
 import { AdminGate } from "@/components/admin/admin-gate"
+import surveyItems from "@/data/survey_item.json"
+
+type SurveySection = Record<string, Record<string, string>>
+
+const PRE_SURVEY = (surveyItems as { pre_survey: SurveySection }).pre_survey
+const POST_SURVEY = (surveyItems as { post_survey: SurveySection }).post_survey
 
 type SessionRow = {
   session_id: string
@@ -18,11 +24,80 @@ type EventRow = {
   payload: any
 }
 
+type SurveyItem = {
+  id: string
+  text: string
+  value: string
+}
+
+type SurveyDisplaySection = {
+  key: string
+  title: string
+  items: SurveyItem[]
+}
+
+function getEventTimestamp(events: EventRow[], type: string, mode: "first" | "last") {
+  let ts: string | undefined
+  for (const event of events) {
+    if (event.type !== type) continue
+    if (mode === "first") {
+      ts = event.ts
+    } else {
+      return event.ts
+    }
+  }
+  return ts
+}
+
+function formatDurationSeconds(start?: string, end?: string) {
+  if (!start || !end) return "-"
+  const startMs = Date.parse(start)
+  const endMs = Date.parse(end)
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return "-"
+  if (endMs < startMs) return "-"
+  return `${Math.round((endMs - startMs) / 1000)}s`
+}
+
 function formatTs(ts?: string | null) {
   if (!ts) return "-"
   const d = new Date(ts)
   if (Number.isNaN(d.getTime())) return ts
   return d.toLocaleString()
+}
+
+function formatSectionTitle(key: string) {
+  return key.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function buildSurveySections(
+  payload: Record<string, Record<string, string>> | undefined,
+  sections: SurveySection,
+): SurveyDisplaySection[] {
+  return Object.entries(sections).map(([sectionKey, items]) => {
+    const responses = payload?.[sectionKey] ?? {}
+    return {
+      key: sectionKey,
+      title: formatSectionTitle(sectionKey),
+      items: Object.entries(items).map(([id, text]) => ({
+        id,
+        text,
+        value: responses[id] ?? "",
+      })),
+    }
+  })
+}
+
+function countSurveyAnswers(payload: Record<string, Record<string, string>> | undefined, sections: SurveySection) {
+  let total = 0
+  let answered = 0
+  for (const [sectionKey, items] of Object.entries(sections)) {
+    const responses = payload?.[sectionKey] ?? {}
+    for (const id of Object.keys(items)) {
+      total += 1
+      if (responses[id]) answered += 1
+    }
+  }
+  return { answered, total }
 }
 
 export default async function AdminPage({
@@ -82,6 +157,18 @@ export default async function AdminPage({
         limit 500
       `) as EventRow[])
     : []
+
+  const preSurveyEvent = events.find((e) => e.type === "PRE_SURVEY")
+  const postSurveyEvent = events.find((e) => e.type === "POST_SURVEY")
+  const gameEndedEvent = events.find((e) => e.type === "GAME_ENDED")
+  const preSurveyStartedAt = getEventTimestamp(events, "PRE_SURVEY_STARTED", "first")
+  const preSurveySubmittedAt = getEventTimestamp(events, "PRE_SURVEY", "last")
+  const postSurveyStartedAt = getEventTimestamp(events, "POST_SURVEY_STARTED", "first")
+  const postSurveySubmittedAt = getEventTimestamp(events, "POST_SURVEY", "last")
+  const preSurveySections = buildSurveySections(preSurveyEvent?.payload, PRE_SURVEY)
+  const postSurveySections = buildSurveySections(postSurveyEvent?.payload, POST_SURVEY)
+  const preCounts = countSurveyAnswers(preSurveyEvent?.payload, PRE_SURVEY)
+  const postCounts = countSurveyAnswers(postSurveyEvent?.payload, POST_SURVEY)
 
   return (
     <AdminGate>
@@ -150,16 +237,97 @@ export default async function AdminPage({
                 </div>
               ) : (
                 <div className="space-y-4 p-4">
-                  <div className="rounded-md border border-border bg-background p-3">
-                    <div className="text-xs text-muted-foreground">Session</div>
-                    <div className="mt-1 text-sm font-medium text-foreground break-all">{selected.session_id}</div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Consented at: {formatTs(selected.consented_at)}
+                  <div className="rounded-md border border-border bg-background p-3 space-y-3">
+                    <div>
+                      <div className="text-xs text-muted-foreground">Game Session</div>
+                      <div className="mt-1 text-sm font-medium text-foreground break-all">{selected.session_id}</div>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Consented at: {formatTs(selected.consented_at)}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Participant: {selected.participant_name ?? "Unknown"} · State:{" "}
+                        {selected.game_state ?? "no-state"}
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      Participant: {selected.participant_name ?? "Unknown"} · State:{" "}
-                      {selected.game_state ?? "no-state"}
+                    <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                      {gameEndedEvent ? (
+                        <div className="grid gap-1 sm:grid-cols-2">
+                          <div>Winner side: {gameEndedEvent.payload?.winnerSide ?? "-"}</div>
+                          <div>Liar: {gameEndedEvent.payload?.liar ?? "-"}</div>
+                          <div>Suspect: {gameEndedEvent.payload?.suspect ?? "-"}</div>
+                          <div>Keyword: {gameEndedEvent.payload?.keyword ?? "-"}</div>
+                          <div>Topic: {gameEndedEvent.payload?.topic ?? "-"}</div>
+                          <div>
+                            Votes:{" "}
+                            {gameEndedEvent.payload?.votes
+                              ? JSON.stringify(gameEndedEvent.payload.votes)
+                              : "-"}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>No GAME_ENDED event recorded.</div>
+                      )}
                     </div>
+                  </div>
+
+                  <div className="rounded-md border border-border bg-background p-3 space-y-3">
+                    <div className="text-xs text-muted-foreground">Survey</div>
+                    <details className="rounded-md border border-border bg-muted/30 p-3">
+                      <summary className="cursor-pointer text-sm font-medium text-foreground">
+                        Pre-survey answers ({preCounts.answered}/{preCounts.total})
+                      </summary>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Started: {formatTs(preSurveyStartedAt)} · Submitted: {formatTs(preSurveySubmittedAt)} · Duration:{" "}
+                        {formatDurationSeconds(preSurveyStartedAt, preSurveySubmittedAt)}
+                      </div>
+                      <div className="mt-3 space-y-4 text-xs text-muted-foreground">
+                        {preSurveySections.map((section) => (
+                          <div key={section.key} className="space-y-2">
+                            <div className="text-xs font-semibold text-foreground">{section.title}</div>
+                            <div className="grid gap-2">
+                              {section.items.map((item) => (
+                                <div key={item.id} className="rounded border border-border bg-background p-2">
+                                  <div className="text-[11px] text-muted-foreground">
+                                    {item.id} · {item.text}
+                                  </div>
+                                  <div className="mt-1 text-xs text-foreground">
+                                    {item.value || "-"}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                    <details className="rounded-md border border-border bg-muted/30 p-3">
+                      <summary className="cursor-pointer text-sm font-medium text-foreground">
+                        Post-survey answers ({postCounts.answered}/{postCounts.total})
+                      </summary>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Started: {formatTs(postSurveyStartedAt)} · Submitted: {formatTs(postSurveySubmittedAt)} · Duration:{" "}
+                        {formatDurationSeconds(postSurveyStartedAt, postSurveySubmittedAt)}
+                      </div>
+                      <div className="mt-3 space-y-4 text-xs text-muted-foreground">
+                        {postSurveySections.map((section) => (
+                          <div key={section.key} className="space-y-2">
+                            <div className="text-xs font-semibold text-foreground">{section.title}</div>
+                            <div className="grid gap-2">
+                              {section.items.map((item) => (
+                                <div key={item.id} className="rounded border border-border bg-background p-2">
+                                  <div className="text-[11px] text-muted-foreground">
+                                    {item.id} · {item.text}
+                                  </div>
+                                  <div className="mt-1 text-xs text-foreground">
+                                    {item.value || "-"}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
                   </div>
 
                   <div className="rounded-md border border-border bg-background p-3">

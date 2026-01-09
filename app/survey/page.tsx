@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -30,6 +30,16 @@ export default function SurveyPage() {
   const router = useRouter()
   const [responses, setResponses] = useState<Record<string, string>>({})
   const [pageIndex, setPageIndex] = useState(0)
+
+  useEffect(() => {
+    const sessionId = localStorage.getItem("sessionId")
+    if (!sessionId) return
+    const key = `postSurveyStartedAt:${sessionId}`
+    if (localStorage.getItem(key)) return
+    const startedAt = new Date().toISOString()
+    localStorage.setItem(key, startedAt)
+    logEvent({ sessionId, type: "POST_SURVEY_STARTED", ts: startedAt }).catch(() => {})
+  }, [])
 
   const sections = useMemo(() => {
     return Object.entries(POST_SURVEY).map(([sectionKey, items]) => ({

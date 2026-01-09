@@ -36,6 +36,16 @@ export default function PreSurveyPage() {
   const u1 = responses["use_of_ai.U1"]
   const u2 = responses["use_of_ai.U2"]
 
+  useEffect(() => {
+    const sessionId = localStorage.getItem("sessionId")
+    if (!sessionId) return
+    const key = `preSurveyStartedAt:${sessionId}`
+    if (localStorage.getItem(key)) return
+    const startedAt = new Date().toISOString()
+    localStorage.setItem(key, startedAt)
+    logEvent({ sessionId, type: "PRE_SURVEY_STARTED", ts: startedAt }).catch(() => {})
+  }, [])
+
   const sections = useMemo(() => {
     return Object.entries(PRE_SURVEY).map(([sectionKey, items]) => ({
       key: sectionKey,

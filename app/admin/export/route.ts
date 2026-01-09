@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server"
 import { sql } from "@/lib/db"
+import surveyItems from "@/data/survey_item.json"
+
+type SurveySection = Record<string, Record<string, string>>
+
+const PRE_SURVEY = (surveyItems as { pre_survey: SurveySection }).pre_survey
+const POST_SURVEY = (surveyItems as { post_survey: SurveySection }).post_survey
 
 type EventRow = {
   session_id: string
@@ -20,6 +26,10 @@ type SessionAggregate = {
   pre_survey?: any
   post_survey?: any
   game_ended?: any
+  pre_survey_started_at?: string | null
+  pre_survey_submitted_at?: string | null
+  post_survey_started_at?: string | null
+  post_survey_submitted_at?: string | null
 }
 
 function csvEscape(value: unknown) {
@@ -38,6 +48,37 @@ function toCsv(rows: Record<string, string>[]) {
     lines.push(headers.map((h) => csvEscape(row[h] ?? "")).join(","))
   }
   return lines.join("\n")
+}
+
+function buildSurveyColumns(prefix: string, sections: SurveySection) {
+  const columns: { key: string; sectionKey: string; questionId: string }[] = []
+  for (const [sectionKey, items] of Object.entries(sections)) {
+    for (const questionId of Object.keys(items)) {
+      columns.push({
+        key: `${prefix}_${sectionKey}_${questionId}`,
+        sectionKey,
+        questionId,
+      })
+    }
+  }
+  return columns
+}
+
+function getSurveyValue(
+  payload: Record<string, Record<string, string>> | undefined,
+  sectionKey: string,
+  questionId: string,
+) {
+  return payload?.[sectionKey]?.[questionId] ?? ""
+}
+
+function toDurationSeconds(start?: string | null, end?: string | null) {
+  if (!start || !end) return ""
+  const startMs = Date.parse(start)
+  const endMs = Date.parse(end)
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return ""
+  if (endMs < startMs) return ""
+  return String(Math.round((endMs - startMs) / 1000))
 }
 
 export async function GET(req: Request) {
@@ -102,36 +143,53 @@ export async function GET(req: Request) {
       if (row.type === "PRE_SURVEY") agg.pre_survey = row.payload
       if (row.type === "POST_SURVEY") agg.post_survey = row.payload
       if (row.type === "GAME_ENDED") agg.game_ended = row.payload
+      if (row.type === "PRE_SURVEY_STARTED" && !agg.pre_survey_started_at)
+        agg.pre_survey_started_at = row.ts ?? agg.pre_survey_started_at
+      if (row.type === "POST_SURVEY_STARTED" && !agg.post_survey_started_at)
+        agg.post_survey_started_at = row.ts ?? agg.post_survey_started_at
+      if (row.type === "PRE_SURVEY") agg.pre_survey_submitted_at = row.ts ?? agg.pre_survey_submitted_at
+      if (row.type === "POST_SURVEY") agg.post_survey_submitted_at = row.ts ?? agg.post_survey_submitted_at
     }
   }
+
+  const preColumns = buildSurveyColumns("pre", PRE_SURVEY)
+  const postColumns = buildSurveyColumns("post", POST_SURVEY)
 
   const output = Array.from(sessions.values()).map((s) => {
     const pre = s.pre_survey ?? {}
     const post = s.post_survey ?? {}
     const ended = s.game_ended ?? {}
 
-    return {
+    const row: Record<string, string> = {
       session_id: s.session_id,
       consented_at: s.consented_at ?? "",
       participant_name: s.participant_name ?? "",
       game_state: s.game_state ?? "",
       event_count: String(s.event_count),
       last_event_ts: s.last_event_ts ?? "",
-      pre_age_range: pre.ageRange ?? "",
-      pre_gender: pre.gender ?? "",
-      pre_experience: pre.experience ?? "",
-      post_enjoyment: post.enjoyment ?? "",
-      post_difficulty: post.difficulty ?? "",
-      post_fairness: post.fairness ?? "",
-      post_ai_realism: post.aiRealism ?? "",
-      post_feedback: post.feedback ?? "",
-      game_winner_side: ended.winnerSide ?? "",
-      game_liar: ended.liar ?? "",
-      game_suspect: ended.suspect ?? "",
-      game_keyword: ended.keyword ?? "",
-      game_topic: ended.topic ?? "",
-      game_votes: ended.votes ? JSON.stringify(ended.votes) : "",
+      pre_survey_started_at: s.pre_survey_started_at ?? "",
+      pre_survey_submitted_at: s.pre_survey_submitted_at ?? "",
+      pre_survey_duration_seconds: toDurationSeconds(s.pre_survey_started_at, s.pre_survey_submitted_at),
+      post_survey_started_at: s.post_survey_started_at ?? "",
+      post_survey_submitted_at: s.post_survey_submitted_at ?? "",
+      post_survey_duration_seconds: toDurationSeconds(s.post_survey_started_at, s.post_survey_submitted_at),
     }
+
+    for (const col of preColumns) {
+      row[col.key] = String(getSurveyValue(pre, col.sectionKey, col.questionId))
+    }
+    for (const col of postColumns) {
+      row[col.key] = String(getSurveyValue(post, col.sectionKey, col.questionId))
+    }
+
+    row.game_winner_side = ended.winnerSide ?? ""
+    row.game_liar = ended.liar ?? ""
+    row.game_suspect = ended.suspect ?? ""
+    row.game_keyword = ended.keyword ?? ""
+    row.game_topic = ended.topic ?? ""
+    row.game_votes = ended.votes ? JSON.stringify(ended.votes) : ""
+
+    return row
   })
 
   const csv = toCsv(output)

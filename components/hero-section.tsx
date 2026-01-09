@@ -18,7 +18,7 @@ export function HeroSection() {
             Liar Game Experiment
           </h1>
           <p className="mx-auto max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl">
-            A research study examining strategic decision-making and behavioral patterns in competitive scenarios
+            A social deduction game study with AI agents
           </p>
         </div>
 
@@ -26,7 +26,7 @@ export function HeroSection() {
           <Button size="lg" className="h-12 px-8 text-base" onClick={handleStartGame}>
             Start Game
           </Button>
-          <p className="text-sm text-muted-foreground">Estimated time: 15-20 minutes</p>
+          <p className="text-sm text-muted-foreground">Estimated time: about 10 minutes</p>
         </div>
       </div>
     </section>
