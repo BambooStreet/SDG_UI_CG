@@ -28,6 +28,8 @@ type SessionAggregate = {
   game_ended?: any
   ai_description_auth?: boolean
   ai_description_group?: string | null
+  mid_check_confidence?: string | null
+  mid_check_suspect?: string | null
   pre_survey_started_at?: string | null
   pre_survey_submitted_at?: string | null
   post_survey_started_at?: string | null
@@ -153,6 +155,14 @@ export async function GET(req: Request) {
           agg.ai_description_group = row.payload.group
         }
       }
+      if (row.type === "MID_CHECK") {
+        if (agg.mid_check_confidence == null) {
+          agg.mid_check_confidence = row.payload?.confidence != null ? String(row.payload.confidence) : ""
+        }
+        if (agg.mid_check_suspect == null) {
+          agg.mid_check_suspect = row.payload?.suspectName ?? ""
+        }
+      }
       if (row.type === "PRE_SURVEY_STARTED" && !agg.pre_survey_started_at)
         agg.pre_survey_started_at = row.ts ?? agg.pre_survey_started_at
       if (row.type === "POST_SURVEY_STARTED" && !agg.post_survey_started_at)
@@ -185,6 +195,8 @@ export async function GET(req: Request) {
       post_survey_duration_seconds: toDurationSeconds(s.post_survey_started_at, s.post_survey_submitted_at),
       ai_description_auth: s.ai_description_auth === undefined ? "" : String(s.ai_description_auth),
       ai_description_group: s.ai_description_group ?? "",
+      mid_check_suspect: s.mid_check_suspect ?? "",
+      mid_check_confidence: s.mid_check_confidence ?? "",
     }
 
     for (const col of preColumns) {
