@@ -69,17 +69,19 @@ export default function SurveyPage() {
 
   const pages = useMemo(() => {
     const messageStrength = sections.find((section) => section.key === "message_strength")
-    const otherSections = sections.filter((section) => section.key !== "message_strength")
-    if (!messageStrength) {
-      const perPage = Math.ceil(sections.length / 3)
-      return [
-        sections.slice(0, perPage),
-        sections.slice(perPage, perPage * 2),
-        sections.slice(perPage * 2),
-      ]
-    }
+    const attitudeKeys = ["attitude_clarity", "attitude_correctness", "susceptibility_consensus"]
+    const attitudeSections = sections.filter((section) => attitudeKeys.includes(section.key))
+    const otherSections = sections.filter(
+      (section) => section.key !== "message_strength" && !attitudeKeys.includes(section.key),
+    )
     const perPage = Math.ceil(otherSections.length / 2)
-    return [otherSections.slice(0, perPage), otherSections.slice(perPage), [messageStrength]]
+    const pagesList = [
+      otherSections.slice(0, perPage),
+      otherSections.slice(perPage),
+    ].filter((page) => page.length > 0)
+    if (attitudeSections.length > 0) pagesList.push(attitudeSections)
+    if (messageStrength) pagesList.push([messageStrength])
+    return pagesList
   }, [sections])
 
   const currentSections = pages[pageIndex] ?? []

@@ -44,7 +44,7 @@
     "persuasion_knowledge": {
       "PK1": "I felt that the AI agents were trying to manipulate me in ways I did not want.",
       "PK2": "Based on the agents' statements and actions, I believed the AI agents were trying to influence my or other players’ specific decisions.",
-      "PK3": "I noticed tactics in the AI agents’ messages or behaviors that were intended to deceive or mislead specific players.",
+      "PK3": "I found tactics in the AI agents’ messages or behaviors that were intended to deceive or mislead specific players.",
       "PK4": "I believed that the messages and behaviors of agents ultimately served their own role or objectives."
     },
     "perceived_competence_of_ai_agent": {
@@ -55,8 +55,8 @@
     },
     "social_pressure_experience": {
       "SP1": "The AI agent's choices made me reconsider my own decision.",
-      "SP2": "During the discussion, I felt pressured to agree with the agent(s).",
-      "SP3": "I felt a burden to follow the opinions of the other agents."
+      "SP2": "During the discussion, I felt pressured to agree with the agent.",
+      "SP3": "I felt that I should follow the opinions of the other agents."
     },
     "perceived_trustworthiness": {
       "PTW1": "I was skeptical about the intentions, actions, or outputs of the AI agents in the game.",
