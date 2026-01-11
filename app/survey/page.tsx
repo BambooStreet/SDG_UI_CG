@@ -40,6 +40,12 @@ const stripNumberedOptions = (text: string) => {
   const trimmed = cleaned.slice(0, start).trim()
   return trimmed.replace(/\(\s*$/, "").trim()
 }
+const formatSectionTitle = (key: string) =>
+  key
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (match) => match.toUpperCase())
 
 export default function SurveyPage() {
   const router = useRouter()
@@ -102,6 +108,25 @@ export default function SurveyPage() {
       }, {})
 
       await logEvent({ sessionId, type: "POST_SURVEY", payload })
+
+      const consentedAt = localStorage.getItem("consentedAt")
+      if (consentedAt) {
+        const endedAt = new Date().toISOString()
+        const startedMs = Date.parse(consentedAt)
+        const endedMs = Date.parse(endedAt)
+        if (!Number.isNaN(startedMs) && !Number.isNaN(endedMs) && endedMs >= startedMs) {
+          const durationSeconds = Math.round((endedMs - startedMs) / 1000)
+          await logEvent({
+            sessionId,
+            type: "SESSION_DURATION",
+            payload: {
+              started_at: consentedAt,
+              ended_at: endedAt,
+              duration_seconds: durationSeconds,
+            },
+          })
+        }
+      }
     }
     router.push("/complete")
   }
@@ -131,7 +156,7 @@ export default function SurveyPage() {
 
         {/* Survey Questions */}
         <Card>
-          <CardContent className="pt-6 space-y-8">
+          <CardContent className="pt-6 space-y-10">
             {isMessageStrengthPage || pageIndex === 0 || pageIndex === 1 ? (
               <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
                 <p>
@@ -143,7 +168,10 @@ export default function SurveyPage() {
               </div>
             ) : null}
             {currentSections.map((section) => (
-              <div key={section.key} className="space-y-6">
+              <div key={section.key} className="rounded-lg border border-border/70 bg-muted/20 p-5 space-y-6">
+                <div className="text-sm font-semibold tracking-wide text-muted-foreground">
+                  {formatSectionTitle(section.key)}
+                </div>
                 {section.key === "attitude_clarity" ? (
                   <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
                     <p>
@@ -164,19 +192,19 @@ export default function SurveyPage() {
 
                   return (
                     <div key={question.id} className="space-y-3">
-                      <Label className="text-base font-medium">{labelText}</Label>
+                      <Label className="text-base font-medium leading-6">{labelText}</Label>
                       {numberedOptions ? (
                         <RadioGroup
                           value={responses[question.responseKey] ?? ""}
                           onValueChange={(value) => setResponses({ ...responses, [question.responseKey]: value })}
                         >
-                          <div className="grid grid-cols-3 gap-3">
+                          <div className="grid grid-cols-3 gap-4">
                             {numberedOptions.map((option) => (
-                              <div key={option.value} className="flex flex-col items-center gap-1">
+                              <div key={option.value} className="flex flex-col items-center gap-2">
                                 <RadioGroupItem value={option.value} id={`${idBase}-${option.value}`} />
                                 <Label
                                   htmlFor={`${idBase}-${option.value}`}
-                                  className="text-xs cursor-pointer text-muted-foreground text-center"
+                                  className="text-xs cursor-pointer text-muted-foreground text-center leading-4"
                                 >
                                   {option.label}
                                 </Label>
@@ -189,9 +217,9 @@ export default function SurveyPage() {
                           value={responses[question.responseKey] ?? ""}
                           onValueChange={(value) => setResponses({ ...responses, [question.responseKey]: value })}
                         >
-                          <div className="grid grid-cols-7 gap-2">
+                          <div className="grid grid-cols-7 gap-3">
                             {[1, 2, 3, 4, 5, 6, 7].map((score) => (
-                              <div key={score} className="flex flex-col items-center gap-1">
+                              <div key={score} className="flex flex-col items-center gap-2">
                                 <RadioGroupItem value={score.toString()} id={`${idBase}-${score}`} />
                                 <Label
                                   htmlFor={`${idBase}-${score}`}
@@ -202,7 +230,7 @@ export default function SurveyPage() {
                               </div>
                             ))}
                           </div>
-                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <div className="flex justify-between text-xs text-muted-foreground mt-2">
                             <span>{bipolarMatch[1].trim()}</span>
                             <span>{bipolarMatch[2].trim()}</span>
                           </div>
@@ -212,9 +240,9 @@ export default function SurveyPage() {
                           value={responses[question.responseKey] ?? ""}
                           onValueChange={(value) => setResponses({ ...responses, [question.responseKey]: value })}
                         >
-                          <div className="grid grid-cols-7 gap-2">
+                          <div className="grid grid-cols-7 gap-3">
                             {[1, 2, 3, 4, 5, 6, 7].map((score) => (
-                              <div key={score} className="flex flex-col items-center gap-1">
+                              <div key={score} className="flex flex-col items-center gap-2">
                                 <RadioGroupItem value={score.toString()} id={`${idBase}-${score}`} />
                                 <Label
                                   htmlFor={`${idBase}-${score}`}
@@ -225,9 +253,9 @@ export default function SurveyPage() {
                               </div>
                             ))}
                           </div>
-                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                            <span>1 = Strongly disagree</span>
-                            <span>7 = Strongly agree</span>
+                          <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                            <span>Strongly disagree</span>
+                            <span>Strongly agree</span>
                           </div>
                         </RadioGroup>
                       )}

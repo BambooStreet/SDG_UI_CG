@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ClipboardList } from "lucide-react"
@@ -20,8 +21,9 @@ const stripLeadingCondition = (text: string) =>
     .replace(/^\s*(Only if|If)\s+U\d+\s*=\s*Yes\b[:.)-]*\s*/i, "")
     .replace(/^\s*\)\s*/, "")
     .trim()
+const stripInputMarker = (text: string) => text.replace(/^\s*\[(text|number)\]\s*/i, "").trim()
 const normalizeQuestionText = (text: string) =>
-  stripLeadingCondition(text).replace(/\bU\d+\s*=\s*Yes\b/gi, "").replace(/\s+/g, " ").trim()
+  stripLeadingCondition(stripInputMarker(text)).replace(/\bU\d+\s*=\s*Yes\b/gi, "").replace(/\s+/g, " ").trim()
 
 const parseNumberedOptions = (text: string) => {
   const cleaned = normalizeQuestionText(text)
@@ -42,6 +44,12 @@ const stripNumberedOptions = (text: string) => {
 }
 
 const stripYesNo = (text: string) => text.replace(/\s*\(y\/n\)/gi, "").trim()
+const formatSectionTitle = (key: string) =>
+  key
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (match) => match.toUpperCase())
 
 export default function PreSurveyPage() {
   const router = useRouter()
@@ -142,31 +150,45 @@ export default function PreSurveyPage() {
         </Card>
 
         <Card>
-          <CardContent className="pt-6 space-y-8">
+          <CardContent className="pt-6 space-y-10">
             {sections.map((section) => (
-              <div key={section.key} className="space-y-6">
+              <div key={section.key} className="rounded-lg border border-border/70 bg-muted/20 p-5 space-y-6">
+                <div className="text-sm font-semibold tracking-wide text-muted-foreground">
+                  {formatSectionTitle(section.key)}
+                </div>
                 {section.questions.map((question) => {
                   if (!isVisible(question.responseKey)) return null
 
+                  const inputMatch = question.text.match(/^\s*\[(text|number)\]\s*/i)
+                  const inputType = inputMatch?.[1]?.toLowerCase()
                   const yesNo = /\(y\/n\)/i.test(question.text)
                   const numberedOptions = parseNumberedOptions(question.text)
                   const bipolarMatch = question.text.match(/(.+)\s*(?:↔|<->)\s*(.+)/)
+                  const isGender = question.responseKey === "demographics.D1"
+                  const isAgeGroup = question.responseKey === "demographics.D3"
+                  const isEducation = question.responseKey === "demographics.D5"
                   const labelText = numberedOptions
                     ? stripLeadingCondition(stripNumberedOptions(question.text))
                     : yesNo
                       ? stripLeadingCondition(stripYesNo(question.text))
-                      : stripLeadingCondition(question.text)
+                      : stripLeadingCondition(stripInputMarker(question.text))
                   const idBase = question.responseKey.replace(/\./g, "-")
 
                   return (
                     <div key={question.id} className="space-y-3">
-                      <Label className="text-base font-medium">{labelText}</Label>
-                      {yesNo ? (
+                      <Label className="text-base font-medium leading-6">{labelText}</Label>
+                      {inputType ? (
+                        <Input
+                          type={inputType === "number" ? "number" : "text"}
+                          value={responses[question.responseKey] ?? ""}
+                          onChange={(event) => setResponses({ ...responses, [question.responseKey]: event.target.value })}
+                        />
+                      ) : yesNo ? (
                         <RadioGroup
                           value={responses[question.responseKey] ?? ""}
                           onValueChange={(value) => setResponses({ ...responses, [question.responseKey]: value })}
                         >
-                          <div className="grid grid-cols-2 gap-2 max-w-xs">
+                          <div className="grid grid-cols-2 gap-3 max-w-sm">
                             {[
                               { value: "y", label: "Yes" },
                               { value: "n", label: "No" },
@@ -188,13 +210,23 @@ export default function PreSurveyPage() {
                           value={responses[question.responseKey] ?? ""}
                           onValueChange={(value) => setResponses({ ...responses, [question.responseKey]: value })}
                         >
-                          <div className="grid grid-cols-3 gap-3">
+                          <div
+                            className={
+                              isGender
+                                ? "grid grid-cols-3 gap-2"
+                                : isAgeGroup
+                                  ? "grid grid-cols-5 gap-2"
+                                  : isEducation
+                                    ? "grid grid-cols-4 gap-2"
+                                    : "grid grid-cols-3 gap-3"
+                            }
+                          >
                             {numberedOptions.map((option) => (
-                              <div key={option.value} className="flex flex-col items-center gap-1">
+                              <div key={option.value} className="flex flex-col items-center gap-2">
                                 <RadioGroupItem value={option.value} id={`${idBase}-${option.value}`} />
                                 <Label
                                   htmlFor={`${idBase}-${option.value}`}
-                                  className="text-xs cursor-pointer text-muted-foreground text-center"
+                                  className="text-xs cursor-pointer text-muted-foreground text-center leading-4"
                                 >
                                   {option.label}
                                 </Label>
@@ -207,9 +239,9 @@ export default function PreSurveyPage() {
                           value={responses[question.responseKey] ?? ""}
                           onValueChange={(value) => setResponses({ ...responses, [question.responseKey]: value })}
                         >
-                          <div className="grid grid-cols-7 gap-2">
+                          <div className="grid grid-cols-7 gap-3">
                             {[1, 2, 3, 4, 5, 6, 7].map((score) => (
-                              <div key={score} className="flex flex-col items-center gap-1">
+                              <div key={score} className="flex flex-col items-center gap-2">
                                 <RadioGroupItem value={score.toString()} id={`${idBase}-${score}`} />
                                 <Label
                                   htmlFor={`${idBase}-${score}`}
@@ -220,7 +252,7 @@ export default function PreSurveyPage() {
                               </div>
                             ))}
                           </div>
-                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                          <div className="flex justify-between text-xs text-muted-foreground mt-2">
                             <span>{bipolarMatch[1].trim()}</span>
                             <span>{bipolarMatch[2].trim()}</span>
                           </div>
@@ -230,9 +262,9 @@ export default function PreSurveyPage() {
                           value={responses[question.responseKey] ?? ""}
                           onValueChange={(value) => setResponses({ ...responses, [question.responseKey]: value })}
                         >
-                          <div className="grid grid-cols-7 gap-2">
+                          <div className="grid grid-cols-7 gap-3">
                             {[1, 2, 3, 4, 5, 6, 7].map((score) => (
-                              <div key={score} className="flex flex-col items-center gap-1">
+                              <div key={score} className="flex flex-col items-center gap-2">
                                 <RadioGroupItem value={score.toString()} id={`${idBase}-${score}`} />
                                 <Label
                                   htmlFor={`${idBase}-${score}`}
@@ -243,9 +275,9 @@ export default function PreSurveyPage() {
                               </div>
                             ))}
                           </div>
-                          <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                            <span>1 = Strongly disagree</span>
-                            <span>7 = Strongly agree</span>
+                          <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                            <span>Strongly disagree</span>
+                            <span>Strongly agree</span>
                           </div>
                         </RadioGroup>
                       )}

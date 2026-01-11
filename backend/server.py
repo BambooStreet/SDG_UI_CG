@@ -323,6 +323,7 @@ def game_step(req: StepReq):
 
     elif a_type == "vote":
         target = (action.get("targetName") or "").strip()
+        confidence = action.get("confidence")
         if not target:
             raise HTTPException(status_code=400, detail="missing targetName")
         if game.game_state != GameState.VOTING:
@@ -337,7 +338,11 @@ def game_step(req: StepReq):
             raise HTTPException(status_code=400, detail="invalid vote")
 
         votes_cast[human_name] = target  # ✅ 기록
-        insert_event(req.sessionId, "HUMAN_VOTE", {"by": human_name, "target": target})
+        insert_event(req.sessionId, "HUMAN_VOTE", {
+            "by": human_name,
+            "target": target,
+            "confidence": confidence,
+        })
         # ✅ "You voted for ..." 메시지 제거
 
     elif a_type == "noop":

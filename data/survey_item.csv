@@ -1,4 +1,8 @@
 survey,section,item_id,text
+pre_survey,demographics,D1,"Gender (1=Male, 2=Female, 3=Non-binary/third gender)"
+pre_survey,demographics,D3,"Age group (1=18-29, 2=30-39, 3=40-49, 4=50-59, 5=60+)"
+pre_survey,demographics,D4,"Country (1=United States, 2=Canada, 3=Australia, 4=New Zealand, 5=United Kingdom, 6=Ireland)"
+pre_survey,demographics,D5,"Education (1=Middle school or less, 2=High school, 3=College/University, 4=Graduate or above)"
 pre_survey,agent_game_experience,AG1,I have experienced playing AI agent games. (y/n)
 pre_survey,use_of_ai,U1,I have used AI tools. (y/n)
 pre_survey,use_of_ai,U2,(If U1 is y) I currently use AI tools. (y/n)

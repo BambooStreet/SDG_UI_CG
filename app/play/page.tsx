@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { ChatPanel } from "@/components/play/chat-panel"
 import { MidCheckDialog } from "@/components/play/mid-check-dialog"
 import { FinalVoteDialog } from "@/components/play/final-vote-dialog"
+import { PostVoteInterviewDialog } from "@/components/play/post-vote-interview-dialog"
 import { PhaseInfoDialog } from "@/components/play/phase-info-dialog"
 import { LoadingState } from "@/components/play/loading-state"
 import { ErrorState } from "@/components/play/error-state"
@@ -61,6 +62,7 @@ export default function PlayPage() {
   const [showMidCheck, setShowMidCheck] = useState(false)
   const [showFinalVote, setShowFinalVote] = useState(false)
   const [showTurnInfo, setShowTurnInfo] = useState(false)
+  const [showPostVoteInterview, setShowPostVoteInterview] = useState(false)
 
   const [showAIVoting, setShowAIVoting] = useState(false)
   const [minimizedMidCheck, setMinimizedMidCheck] = useState(false)
@@ -69,6 +71,9 @@ export default function PlayPage() {
   const pumpingRef = useRef(false)
 
   const hasVotedRef = useRef(false)
+  const pendingPostVotePumpRef = useRef(false)
+  const pendingEndRef = useRef<any | null>(null)
+  const interviewPendingRef = useRef(false)
 
   // 메시지 “한꺼번에 append” 말고, UI에 자연스럽게 조금씩 뿌리기(가독성)
   const msgQueueRef = useRef<ApiMsg[]>([])
@@ -78,6 +83,10 @@ export default function PlayPage() {
   const pendingUserEchoRef = useRef<{ name: string; content: string } | null>(null)
   const lastPhaseRef = useRef<ServerPhase | null>(null)
   const lastTurnKeyRef = useRef<string | null>(null)
+  const [midCheckSuspect, setMidCheckSuspect] = useState<string | null>(null)
+  const [midCheckConfidence, setMidCheckConfidence] = useState<number | null>(null)
+  const [finalVoteTarget, setFinalVoteTarget] = useState<string | null>(null)
+  const [finalVoteConfidence, setFinalVoteConfidence] = useState<number | null>(null)
   
 
   const myName = privateState?.myName as string | undefined
@@ -88,6 +97,7 @@ export default function PlayPage() {
     showTurnInfo ||
     showMidCheck ||
     showFinalVote ||
+    showPostVoteInterview ||
     minimizedMidCheck ||
     minimizedFinalVote
 
@@ -255,6 +265,10 @@ export default function PlayPage() {
     if (data.phase === "ENDED") {
       localStorage.setItem("lastEnded", JSON.stringify(data))  // ✅ 핵심
       setShowAIVoting(false)
+      if (showPostVoteInterview || interviewPendingRef.current) {
+        pendingEndRef.current = data
+        return
+      }
       router.push("/results")
     }
   }
@@ -409,7 +423,18 @@ export default function PlayPage() {
       pumpAI().catch(() => {})
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, myName, currentPlayer, uiNeed, sessionId, isLoading, showPhaseInfo, showMidCheck, showFinalVote])
+  }, [
+    phase,
+    myName,
+    currentPlayer,
+    uiNeed,
+    sessionId,
+    isLoading,
+    showPhaseInfo,
+    showMidCheck,
+    showFinalVote,
+    showPostVoteInterview,
+  ])
 
   // 채팅 전송(내 턴일 때만)
   async function handleSend(text: string) {
@@ -455,6 +480,8 @@ export default function PlayPage() {
   async function submitMidCheck(suspectName: string, confidence: number) {
     try {
       setShowMidCheck(false)
+      setMidCheckSuspect(suspectName)
+      setMidCheckConfidence(confidence)
       // ✅ 토론 팝업은 즉시 띄우기 (1회만)
       const shouldShowDiscussionIntro = !shownIntroRef.current.discussion
       if (shouldShowDiscussionIntro) {
@@ -479,20 +506,57 @@ export default function PlayPage() {
   async function submitVote(targetName: string, confidence: number) {
     try {
       setShowFinalVote(false)
-      setShowAIVoting(true)
+      setFinalVoteTarget(targetName)
+      setFinalVoteConfidence(confidence)
   
       hasVotedRef.current = true // ✅ 중요
       localStorage.setItem("lastHumanVote", targetName) // (옵션)
+      interviewPendingRef.current = true
+      setShowPostVoteInterview(true)
   
       const data = await callStep({ type: "vote", targetName, confidence, maxAiSteps: 999 })
-      if (data?.phase && data.phase !== "VOTING") {
-        setShowAIVoting(false)
-      }
-  
-      // ✅ 이제 VOTING 펌프가 멈추지 않으니 ENDED까지 간다
-      await pumpAI(80, { force: true })
+      pendingPostVotePumpRef.current = data?.phase === "VOTING"
+    } catch (e: any) {
+      interviewPendingRef.current = false
+      setShowPostVoteInterview(false)
+      setError(String(e?.message ?? e))
+    }
+  }
+
+  const handlePostVoteInterviewSubmit = async (reason: string, sameChoice: boolean | null) => {
+    if (!sessionId) {
+      setShowPostVoteInterview(false)
+      return
+    }
+    try {
+      await logEvent({
+        sessionId,
+        type: "POST_VOTE_INTERVIEW",
+        payload: {
+          mid_check_suspect: midCheckSuspect,
+          mid_check_confidence: midCheckConfidence,
+          final_vote_target: finalVoteTarget,
+          final_vote_confidence: finalVoteConfidence,
+          same_choice: sameChoice,
+          reason,
+        },
+      })
     } catch (e: any) {
       setError(String(e?.message ?? e))
+    } finally {
+      setShowPostVoteInterview(false)
+    }
+
+    interviewPendingRef.current = false
+    if (pendingPostVotePumpRef.current) {
+      pendingPostVotePumpRef.current = false
+      setShowAIVoting(true)
+    }
+
+    if (pendingEndRef.current) {
+      const pending = pendingEndRef.current
+      pendingEndRef.current = null
+      router.push("/results")
     }
   }
   
@@ -589,6 +653,14 @@ export default function PlayPage() {
         onMinimize={minimizeFinalVote}
         aiPlayers={gameState.aiPlayers}
         onSubmit={submitVote}
+      />
+
+      <PostVoteInterviewDialog
+        open={showPostVoteInterview}
+        onOpenChange={setShowPostVoteInterview}
+        midCheckSuspect={midCheckSuspect}
+        finalVoteTarget={finalVoteTarget}
+        onSubmit={handlePostVoteInterviewSubmit}
       />
 
       <AIVotingDialog open={showAIVoting} />

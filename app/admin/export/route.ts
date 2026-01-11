@@ -30,6 +30,12 @@ type SessionAggregate = {
   ai_description_group?: string | null
   mid_check_confidence?: string | null
   mid_check_suspect?: string | null
+  final_vote_target?: string | null
+  final_vote_confidence?: string | null
+  post_vote_interview_reason?: string | null
+  post_vote_interview_same_choice?: string | null
+  conversation_log?: { ts: string | null; type: string; by?: string; text?: string }[]
+  total_duration_seconds?: string | null
   pre_survey_started_at?: string | null
   pre_survey_submitted_at?: string | null
   post_survey_started_at?: string | null
@@ -163,6 +169,43 @@ export async function GET(req: Request) {
           agg.mid_check_suspect = row.payload?.suspectName ?? ""
         }
       }
+      if (row.type === "HUMAN_VOTE") {
+        if (agg.final_vote_target == null) {
+          agg.final_vote_target = row.payload?.target ?? ""
+        }
+        if (agg.final_vote_confidence == null) {
+          agg.final_vote_confidence = row.payload?.confidence != null ? String(row.payload.confidence) : ""
+        }
+      }
+      if (row.type === "POST_VOTE_INTERVIEW") {
+        if (agg.post_vote_interview_reason == null) {
+          agg.post_vote_interview_reason = row.payload?.reason ?? ""
+        }
+        if (agg.post_vote_interview_same_choice == null) {
+          agg.post_vote_interview_same_choice =
+            row.payload?.same_choice === undefined ? "" : String(row.payload.same_choice)
+        }
+      }
+      if (row.type === "SESSION_DURATION") {
+        if (agg.total_duration_seconds == null) {
+          const seconds = row.payload?.duration_seconds
+          agg.total_duration_seconds = seconds != null ? String(seconds) : ""
+        }
+      }
+      if (
+        row.type === "HUMAN_DESCRIPTION" ||
+        row.type === "AI_DESCRIPTION" ||
+        row.type === "HUMAN_DISCUSSION" ||
+        row.type === "AI_DISCUSSION"
+      ) {
+        if (!agg.conversation_log) agg.conversation_log = []
+        agg.conversation_log.push({
+          ts: row.ts ?? null,
+          type: row.type,
+          by: row.payload?.by,
+          text: row.payload?.text,
+        })
+      }
       if (row.type === "PRE_SURVEY_STARTED" && !agg.pre_survey_started_at)
         agg.pre_survey_started_at = row.ts ?? agg.pre_survey_started_at
       if (row.type === "POST_SURVEY_STARTED" && !agg.post_survey_started_at)
@@ -197,6 +240,14 @@ export async function GET(req: Request) {
       ai_description_group: s.ai_description_group ?? "",
       mid_check_suspect: s.mid_check_suspect ?? "",
       mid_check_confidence: s.mid_check_confidence ?? "",
+      final_vote_target: s.final_vote_target ?? "",
+      final_vote_confidence: s.final_vote_confidence ?? "",
+      post_vote_interview_reason: s.post_vote_interview_reason ?? "",
+      post_vote_interview_same_choice: s.post_vote_interview_same_choice ?? "",
+      total_duration_seconds:
+        s.total_duration_seconds ??
+        toDurationSeconds(s.consented_at, s.post_survey_submitted_at),
+      conversation_log: s.conversation_log ? JSON.stringify(s.conversation_log) : "",
     }
 
     for (const col of preColumns) {

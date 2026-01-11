@@ -1,5 +1,11 @@
 {
   "pre_survey": {
+    "demographics": {
+      "D1": "Gender (1=Male, 2=Female, 3=Non-binary/third gender)",
+      "D3": "Age group (1=18-29, 2=30-39, 3=40-49, 4=50-59, 5=60+)",
+      "D4": "Country (1=United States, 2=Canada, 3=Australia, 4=New Zealand, 5=United Kingdom, 6=Ireland)",
+      "D5": "Education (1=Middle school or less, 2=High school, 3=College/University, 4=Graduate or above)"
+    },
     "agent_game_experience": {
       "AG1": "I have experience playing a game involving AI agents. (y/n)"
     },
@@ -20,16 +26,6 @@
       "PH1": "The AI agents in the game behaved naturally.",
       "PH2": "The AI agents in the game were humanlike.",
       "PH3": "The AI agents in the game seemed to have consciousness."
-    },
-    "mind perception agency": {
-      "MPA1": "The AI agents in the game exercised self-control.",
-      "MPA2": "The AI agents in the game had motives.",
-      "MPA3": "The AI agents in the game spoke with specific intentions."
-    },
-    "perceived_transparency": {
-      "PTR1": "I understood the agents' decision-making processes well.",
-      "PTR2": "I believe that the decision-making processes of the agents were transparent.",
-      "PTR3": "The agents made decisions without hiding information."
     },
     "perceived_persuasiveness": {
       "PP1": "The AI agents’ explanation influenced my final decision.",
