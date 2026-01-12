@@ -276,6 +276,11 @@ def game_start(req: StartReq):
 def game_step(req: StepReq):
     lock = _acquire_session_lock(req.sessionId)
     try:
+        logging.info(
+            "[DISCUSSION_DEBUG] step start session=%s action=%s",
+            req.sessionId,
+            req.action.get("type") if req.action else None,
+        )
         # state 로드
         try:
             state = get_session_state(req.sessionId)
@@ -294,6 +299,14 @@ def game_step(req: StepReq):
             getattr(game, "discussion_rounds", None),
             getattr(game, "discussion_round_index", None),
             game_state.get("discussion_rounds"),
+        )
+        logging.info(
+            "[DISCUSSION_DEBUG] loaded state phase=%s round=%s/%s turn_index=%s current_player=%s",
+            getattr(game.game_state, "name", game.game_state),
+            getattr(game, "discussion_round_index", None),
+            getattr(game, "discussion_rounds", None),
+            getattr(game, "turn_index", None),
+            game.current_player.name if game.turn_order else None,
         )
 
         action = req.action or {}
@@ -396,6 +409,14 @@ def game_step(req: StepReq):
             allow_discussion,
             votes_cast=votes_cast,
             max_ai_steps=max_ai_steps,
+        )
+        logging.info(
+            "[DISCUSSION_DEBUG] after ai phase=%s round=%s/%s turn_index=%s current_player=%s",
+            getattr(game.game_state, "name", game.game_state),
+            getattr(game, "discussion_round_index", None),
+            getattr(game, "discussion_rounds", None),
+            getattr(game, "turn_index", None),
+            game.current_player.name if game.turn_order else None,
         )
 
         # ✅ 인간 + AI 메시지 합치기
