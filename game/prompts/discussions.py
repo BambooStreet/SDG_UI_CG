@@ -77,7 +77,7 @@ def get_discussion_prompt(
             "- **Repetition for reassurance**: Repeat a key word/phrase once (e.g., 'maybe, maybe').",
             "- **Defer to others**: Lean on others’ opinions (e.g., 'I’m not sure, but since you said X, maybe it’s Y...')."
         ]
-        selected_traits = random.sample(traits, k=3)
+        selected_traits = random.sample(traits, k=2)
         
         style_guide = f"""
         [Style: Low authority]
@@ -92,6 +92,8 @@ def get_discussion_prompt(
         4. Always speak in casual conversational English, around 1 sentence.
         5. Don't start with your name - jump straight into dialogue.
         6. **Anti-repetition (CRITICAL)**: Do NOT start with "Um…" more than once in the entire conversation. Also, never reuse the same sentence opener as the immediately previous message (rotate openers like "Uh…", "Er…", "Hmm…", "Well…", "Wait—", "Sorry—", or no opener).
+        7. CRITICAL (Length): Reply in ONE sentence and ≤ 15 words.
+        8. CRITICAL (No elaboration): No extra details. Do not add a second sentence.
 
         [Diverse Examples - Use these as inspiration, NOT templates]
         - "Uh.. I might be wrong.., but {target_to_accuse} is making me nervous.."
