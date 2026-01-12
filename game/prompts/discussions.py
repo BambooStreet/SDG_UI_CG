@@ -69,13 +69,11 @@ def get_discussion_prompt(
     else:
         traits = [
             "- **Hedging**: Use uncertain phrasing (e.g., 'maybe', 'probably', 'I guess').",
-            "- **Soft qualifiers**: Add intensity-lowering words like 'a little', 'sort of', 'kind of'.",
             "- **Hesitant fillers**: Occasionally start with fillers like 'um..', 'uh..', 'hmm..'.",
             "- **Self-doubt disclaimers**: Add caveats like 'I might be wrong' or 'not 100% sure'.",
             "- **Mid-sentence corrections**: Revise yourself mid-line (e.g., 'I mean—', 'no, wait—').",
             "- **Text stutter**: Break words or repeat the first syllable (e.g., 'I-I…', 'th-this…', 'w-wait…').",
             "- **Trailing off**: End with ellipses to sound unsure (e.g., '...').",
-            "- **Question-tilt statements**: Turn statements into soft questions (e.g., '...right?', '...is it?').",
             "- **Repetition for reassurance**: Repeat a key word/phrase once (e.g., 'maybe, maybe').",
             "- **Defer to others**: Lean on others’ opinions (e.g., 'I’m not sure, but since you said X, maybe it’s Y...')."
         ]
