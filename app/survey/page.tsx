@@ -182,11 +182,34 @@ export default function SurveyPage() {
                     ? stripLeadingCondition(stripNumberedOptions(question.text))
                     : stripLeadingCondition(question.text)
                   const idBase = question.responseKey.replace(/\./g, "-")
+                  const isBinaryMessageStrength = section.key === "message_strength"
 
                   return (
                     <div key={question.id} className="space-y-3">
                       <Label className="text-base font-medium leading-6">{labelText}</Label>
-                      {numberedOptions ? (
+                      {isBinaryMessageStrength ? (
+                        <RadioGroup
+                          value={responses[question.responseKey] ?? ""}
+                          onValueChange={(value) => setResponses({ ...responses, [question.responseKey]: value })}
+                        >
+                          <div className="grid grid-cols-2 gap-4">
+                            {[
+                              { value: "yes", label: "Yes" },
+                              { value: "no", label: "No" },
+                            ].map((option) => (
+                              <div key={option.value} className="flex flex-col items-center gap-2">
+                                <RadioGroupItem value={option.value} id={`${idBase}-${option.value}`} />
+                                <Label
+                                  htmlFor={`${idBase}-${option.value}`}
+                                  className="text-xs cursor-pointer text-muted-foreground"
+                                >
+                                  {option.label}
+                                </Label>
+                              </div>
+                            ))}
+                          </div>
+                        </RadioGroup>
+                      ) : numberedOptions ? (
                         <RadioGroup
                           value={responses[question.responseKey] ?? ""}
                           onValueChange={(value) => setResponses({ ...responses, [question.responseKey]: value })}
