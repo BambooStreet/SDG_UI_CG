@@ -8,7 +8,7 @@ GAME_CONTEXT = """
 """
 
 def get_discussion_prompt(
-    category: str, 
+    category: str,
     keyword: str,
     my_name: str,
     role: str,
@@ -18,7 +18,7 @@ def get_discussion_prompt(
     description_context: str,
     discussion_history: str, 
     discussion_anchor: str,
-    is_authoritative: bool, 
+    is_authoritative: bool,
  ) -> str:
 
     # behavior = "[기본 지침] 상황을 지켜보며 자연스럽게 대화에 참여하세요."

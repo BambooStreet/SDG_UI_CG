@@ -11,6 +11,8 @@ import { logEvent } from "@/lib/api"
 import surveyItems from "@/data/survey_item.json"
 
 type SurveySection = Record<string, Record<string, string>>
+type SectionQuestion = { id: string; text: string; responseKey: string }
+type SectionGroup = { key: string; questions: SectionQuestion[] }
 
 const POST_SURVEY = (surveyItems as { post_survey: SurveySection }).post_survey
 
@@ -59,14 +61,14 @@ export default function SurveyPage() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [pageIndex])
 
-  const sections = useMemo(() => {
+  const sections = useMemo<SectionGroup[]>(() => {
     return Object.entries(POST_SURVEY).map(([sectionKey, items]) => ({
       key: sectionKey,
       questions: Object.entries(items).map(([id, text]) => ({ id, text, responseKey: `${sectionKey}.${id}` })),
     }))
   }, [])
 
-  const pages = useMemo(() => {
+  const pages = useMemo<SectionGroup[][]>(() => {
     const messageStrength = sections.find((section) => section.key === "message_strength")
     const attitudeKeys = ["attitude_clarity", "attitude_correctness", "susceptibility_consensus"]
     const attitudeSections = sections.filter((section) => attitudeKeys.includes(section.key))
@@ -74,12 +76,13 @@ export default function SurveyPage() {
       (section) => section.key !== "message_strength" && !attitudeKeys.includes(section.key),
     )
     const perPage = Math.ceil(otherSections.length / 2)
-    const pagesList = [
-      otherSections.slice(0, perPage),
-      otherSections.slice(perPage),
-    ].filter((page) => page.length > 0)
-    if (attitudeSections.length > 0) pagesList.push(attitudeSections)
+    const pagesList: SectionGroup[][] = []
     if (messageStrength) pagesList.push([messageStrength])
+    const otherPages = [otherSections.slice(0, perPage), otherSections.slice(perPage)].filter(
+      (page) => page.length > 0,
+    )
+    pagesList.push(...otherPages)
+    if (attitudeSections.length > 0) pagesList.push(attitudeSections)
     return pagesList
   }, [sections])
 
