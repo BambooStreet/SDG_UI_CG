@@ -276,7 +276,8 @@ def game_start(req: StartReq):
 def game_step(req: StepReq):
     lock = _acquire_session_lock(req.sessionId)
     try:
-        logging.info(
+        debug_logger = logging.getLogger("uvicorn.error")
+        debug_logger.warning(
             "[DISCUSSION_DEBUG] step start session=%s action=%s",
             req.sessionId,
             req.action.get("type") if req.action else None,
@@ -294,19 +295,14 @@ def game_step(req: StepReq):
             raise HTTPException(status_code=400, detail="game not started for this session")
 
         game = deserialize_game(game_state, GameSession, Player, AIPlayer, GameState, Role)
-        logging.info(
-            "[diag] loaded discussion rounds=%s index=%s (raw=%s)",
-            getattr(game, "discussion_rounds", None),
-            getattr(game, "discussion_round_index", None),
-            game_state.get("discussion_rounds"),
-        )
-        logging.info(
-            "[DISCUSSION_DEBUG] loaded state phase=%s round=%s/%s turn_index=%s current_player=%s",
+        debug_logger.warning(
+            "[DISCUSSION_DEBUG] loaded state phase=%s round=%s/%s turn_index=%s current_player=%s (raw_rounds=%s)",
             getattr(game.game_state, "name", game.game_state),
             getattr(game, "discussion_round_index", None),
             getattr(game, "discussion_rounds", None),
             getattr(game, "turn_index", None),
             game.current_player.name if game.turn_order else None,
+            game_state.get("discussion_rounds"),
         )
 
         action = req.action or {}
@@ -410,7 +406,7 @@ def game_step(req: StepReq):
             votes_cast=votes_cast,
             max_ai_steps=max_ai_steps,
         )
-        logging.info(
+        debug_logger.warning(
             "[DISCUSSION_DEBUG] after ai phase=%s round=%s/%s turn_index=%s current_player=%s",
             getattr(game.game_state, "name", game.game_state),
             getattr(game, "discussion_round_index", None),
