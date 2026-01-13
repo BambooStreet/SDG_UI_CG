@@ -34,7 +34,6 @@ type SessionAggregate = {
   final_vote_confidence?: string | null
   post_vote_interview_reason?: string | null
   post_vote_interview_same_choice?: string | null
-  conversation_log?: { ts: string | null; type: string; by?: string; text?: string }[]
   total_duration_seconds?: string | null
   pre_survey_started_at?: string | null
   pre_survey_submitted_at?: string | null
@@ -185,26 +184,15 @@ export async function GET(req: Request) {
           agg.post_vote_interview_same_choice =
             row.payload?.same_choice === undefined ? "" : String(row.payload.same_choice)
         }
+        if (agg.final_vote_confidence == null && row.payload?.final_vote_confidence != null) {
+          agg.final_vote_confidence = String(row.payload.final_vote_confidence)
+        }
       }
       if (row.type === "SESSION_DURATION") {
         if (agg.total_duration_seconds == null) {
           const seconds = row.payload?.duration_seconds
           agg.total_duration_seconds = seconds != null ? String(seconds) : ""
         }
-      }
-      if (
-        row.type === "HUMAN_DESCRIPTION" ||
-        row.type === "AI_DESCRIPTION" ||
-        row.type === "HUMAN_DISCUSSION" ||
-        row.type === "AI_DISCUSSION"
-      ) {
-        if (!agg.conversation_log) agg.conversation_log = []
-        agg.conversation_log.push({
-          ts: row.ts ?? null,
-          type: row.type,
-          by: row.payload?.by,
-          text: row.payload?.text,
-        })
       }
       if (row.type === "PRE_SURVEY_STARTED" && !agg.pre_survey_started_at)
         agg.pre_survey_started_at = row.ts ?? agg.pre_survey_started_at
@@ -247,7 +235,6 @@ export async function GET(req: Request) {
       total_duration_seconds:
         s.total_duration_seconds ??
         toDurationSeconds(s.consented_at, s.post_survey_submitted_at),
-      conversation_log: s.conversation_log ? JSON.stringify(s.conversation_log) : "",
     }
 
     for (const col of preColumns) {
